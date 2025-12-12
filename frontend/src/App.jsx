@@ -1,52 +1,41 @@
-import { Routes, Route, Navigate, Link } from "react-router-dom";
-import { useAuth } from "./auth/AuthContext.jsx";
+import { Routes, Route } from "react-router-dom";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "./firebase";
 
-import Login from "./pages/Login.jsx";
-import StudentDashboard from "./pages/StudentDashboard.jsx";
-import NewRequest from "./pages/NewRequest.jsx";
-import MyRequests from "./pages/MyRequests.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import AdminRequestDetails from "./pages/AdminRequestDetails.jsx";
-
-function PrivateRoute({ children, adminOnly = false }) {
-  const { user, isAdmin, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <Navigate to="/login" />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" />;
-  return children;
-}
+import Login from "./pages/Login";
+import Sidebar from "./pages/Sidebar";
+import Topbar from "./pages/Topbar";
+import StudentDashboard from "./pages/StudentDashboard";
+import MyRequests from "./pages/MyRequests";
+import NewRequest from "./pages/NewRequest";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminRequest from "./pages/AdminRequestDetails";
 
 export default function App() {
-  const { user, isAdmin, logout } = useAuth();
+  const [user] = useAuthState(auth);
+
+  // 🔥 If user is NOT logged in → Show Login Page
+  if (!user) {
+    return <Login />;
+  }
 
   return (
-    <div>
-      <header style={{ padding: "10px", borderBottom: "1px solid #ccc" }}>
-        <Link to="/">VerifiX</Link>
-        {user && (
-          <span style={{ marginLeft: "20px" }}>
-            {user.email} {isAdmin && "(Admin)"}
-            <button style={{ marginLeft: "10px" }} onClick={logout}>Logout</button>
-          </span>
-        )}
-      </header>
+    <div className="min-h-screen flex bg-gray-50">
+      <Sidebar />
 
-      <main style={{ padding: "20px" }}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <div className="flex-1 flex flex-col">
+        <Topbar />
 
-          {/* Student Routes */}
-          <Route path="/" element={<PrivateRoute><StudentDashboard /></PrivateRoute>} />
-          <Route path="/new-request" element={<PrivateRoute><NewRequest /></PrivateRoute>} />
-          <Route path="/my-requests" element={<PrivateRoute><MyRequests /></PrivateRoute>} />
-
-          {/* Admin Routes */}
-          <Route path="/admin" element={<PrivateRoute adminOnly><AdminDashboard /></PrivateRoute>} />
-          <Route path="/admin/requests/:id" element={<PrivateRoute adminOnly><AdminRequestDetails /></PrivateRoute>} />
-
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
+        <main className="p-6 overflow-auto">
+          <Routes>
+            <Route path="/" element={<StudentDashboard />} />
+            <Route path="/requests" element={<MyRequests />} />
+            <Route path="/new" element={<NewRequest />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/request/:id" element={<AdminRequest />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }

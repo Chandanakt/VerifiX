@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_MSG_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyBhAMsi4buthW7FvXTm03xHlHo3Obt0osA",
+  authDomain: "verifix-be399.firebaseapp.com",
+  projectId: "verifix-be399",
+  storageBucket: "verifix-be399.firebasestorage.app",
+  messagingSenderId: "364363170894",
+  appId: "1:364363170894:web:014583e456a3387c22ef1f"
 };
 
 const app = initializeApp(firebaseConfig);
