@@ -1,7 +1,5 @@
-import React from "react";
 import { useState } from "react";
-import { db, storage } from "../firebase";
-import { useAuth } from "../auth/AuthContext.jsx";
+import { db, storage, auth } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
@@ -11,50 +9,155 @@ export default function NewRequest() {
   const [type, setType] = useState("BONAFIDE");
   const [purpose, setPurpose] = useState("");
   const [file, setFile] = useState(null);
-  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
+
+  // 🔐 Wait until Firebase Auth is ready
+  if (!auth.currentUser) {
+    return <div>Loading user...</div>;
+  }
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!file) return alert("Upload required document.");
 
-    const fileId = uuidv4();
-    const storageRef = ref(storage, `uploads/${user.uid}/${fileId}-${file.name}`);
-    await uploadBytes(storageRef, file);
-    const fileUrl = await getDownloadURL(storageRef);
+    if (!file) {
+      alert("Upload required document.");
+      return;
+    }
 
-    await addDoc(collection(db, "requests"), {
-      userId: user.uid,
-      userEmail: user.email,
-      type,
-      purpose,
-      status: "PENDING_AI_CHECK",
-      attachment: { name: file.name, url: fileUrl },
-      createdAt: serverTimestamp(),
-    });
+    // ✅ File type validation (engineering polish)
+    if (
+      !file.type.includes("pdf") &&
+      !file.type.includes("image")
+    ) {
+      alert("Only PDF or image files are allowed.");
+      return;
+    }
 
-    navigate("/my-requests");
+    try {
+      setLoading(true);
+
+      const user = auth.currentUser;
+      const fileId = uuidv4();
+
+      // Upload to Firebase Storage
+      const storageRef = ref(
+        storage,
+        `uploads/${user.uid}/${fileId}-${file.name}`
+      );
+
+      await uploadBytes(storageRef, file);
+      const fileUrl = await getDownloadURL(storageRef);
+
+      // Create Firestore request document
+      await addDoc(collection(db, "requests"), {
+        userId: user.uid,
+        userEmail: user.email,
+        type,
+        purpose,
+
+        // 🔥 AI pipeline starts here
+        status: "PENDING_AI_CHECK",
+        aiVerdict: null,
+        aiConfidence: null,
+        aiReasons: [],
+
+        attachment: {
+          name: file.name,
+          url: fileUrl,
+        },
+
+        createdAt: serverTimestamp(),
+      });
+
+      alert("Request submitted successfully");
+      navigate("/student/requests");
+    } catch (err) {
+      console.error("Request submission failed:", err);
+      alert("Failed to submit request");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div>
-      <h2>Create Request</h2>
-      <form onSubmit={submit}>
-        <label>Document Type</label>
-        <select value={type} onChange={(e) => setType(e.target.value)}>
-          <option>BONAFIDE</option>
-          <option>TRANSCRIPT</option>
-          <option>NOC</option>
-          <option>FEE_RECEIPT</option>
-        </select>
+    <div className="bg-[#F5FFF9] p-6 rounded-2xl shadow border border-[#D9F3E6]">
 
-        <label>Purpose</label>
-        <input value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+      <h2 className="text-2xl font-bold mb-4 text-[#1F3B2F]">
+        Create Request
+      </h2>
 
-        <label>Upload File</label>
-        <input type="file" onChange={(e) => setFile(e.target.files[0])} required />
+      <form onSubmit={submit} className="space-y-4 max-w-lg">
 
-        <button type="submit">Submit</button>
+        {/* Document Type */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Document Type
+          </label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="border p-2 w-full rounded"
+          >
+            <option>BONAFIDE</option>
+            <option>TRANSCRIPT</option>
+            <option>NOC</option>
+            <option>FEE_RECEIPT</option>
+          </select>
+        </div>
+
+        {/* Purpose */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Purpose
+          </label>
+          <input
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            required
+            className="border p-2 w-full rounded"
+            placeholder="Eg: Internship, Visa, Scholarship"
+          />
+        </div>
+
+        {/* Upload File (Styled Button) */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Upload Document
+          </label>
+
+          <div className="flex items-center gap-4">
+            <input
+              type="file"
+              id="fileUpload"
+              className="hidden"
+              onChange={(e) => setFile(e.target.files[0])}
+              required
+            />
+
+            <label
+              htmlFor="fileUpload"
+              className="px-6 py-2 bg-[#1F3B2F] text-white rounded cursor-pointer hover:bg-[#163025] transition"
+            >
+              Choose File
+            </label>
+
+            <span className="text-sm text-gray-600">
+              {file ? file.name : "No file chosen"}
+            </span>
+          </div>
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-6 py-2 bg-[#1F3B2F] text-white rounded hover:bg-[#163025]"
+        >
+          {loading ? "Submitting..." : "Submit Request"}
+        </button>
+
       </form>
     </div>
   );

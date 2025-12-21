@@ -1,5 +1,7 @@
 import React from "react";
-import { auth, googleProvider } from "../firebase";
+import loginPic from "./login_pic.jpg";
+import { auth, googleProvider, db } from "../firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 auth.signOut();
 import {
   setPersistence,
@@ -10,105 +12,123 @@ import {
 export default function Login() {
   const handleGoogleLogin = async () => {
     try {
-      // 🔥 Forces login EVERY time (no automatic login on refresh)
       await setPersistence(auth, browserSessionPersistence);
 
-      await signInWithPopup(auth, googleProvider);
-      console.log("Google Login Successful");
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          role: "student",
+          createdAt: new Date(),
+        });
+      }
+
+      console.log("Login success");
     } catch (error) {
-      console.error("Google Login Error: ", error);
-      alert("Google login failed. Try again.");
+      console.error("Login failed:", error);
+      alert("Login failed. Try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#e9f7f1]">
-      <div className="w-[1050px] h-[620px] bg-white shadow-2xl rounded-3xl overflow-hidden flex">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: "#e9f7f1" }}
+    >
+      <div className="w-[1100px] h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden flex">
 
-        {/* LEFT SIDE — LOGIN FORM */}
-        <div className="w-1/2 bg-black text-white flex flex-col justify-center px-16">
-          <h2 className="text-4xl font-bold mb-3">Welcome Back 👋</h2>
-          <p className="text-gray-400 mb-10 text-sm">
-            Sign in securely to access VerifiX document verification portal.
-          </p>
+        {/* ================= LEFT — AUTHENTICATE PANEL ================= */}
+        <div className="w-1/2 bg-[#0b0f14] text-white flex flex-col items-center justify-center relative overflow-hidden">
 
-          {/* GOOGLE LOGIN BUTTON */}
-          <button
-            onClick={handleGoogleLogin}
-            className="bg-white text-black w-full py-4 rounded-full flex items-center justify-center gap-3 border border-gray-300 hover:bg-gray-100 transition mb-8 text-lg font-medium"
-          >
-            <img
-              src="https://developers.google.com/identity/images/g-logo.png"
-              className="h-6 w-6"
-              alt="Google logo"
-            />
-            Sign in with Google
-          </button>
+          {/* Background glow */}
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,#1f3b4d,transparent_40%),radial-gradient(circle_at_bottom_right,#0fb9b1,transparent_40%)]"></div>
 
-          <div className="flex items-center gap-4 text-gray-400 text-sm mb-8">
-            <div className="h-[1px] w-full bg-gray-700"></div>
-            or sign in with Email
-            <div className="h-[1px] w-full bg-gray-700"></div>
-          </div>
+          <div className="z-10 flex flex-col items-center w-full px-16">
 
-          {/* EMAIL INPUT */}
-          <input
-            type="text"
-            placeholder="Enter your email"
-            className="w-full py-4 mb-5 px-5 bg-gray-800 rounded-full outline-none text-sm border border-gray-700"
-          />
+            <h1 className="text-4xl font-extrabold tracking-widest mb-10">
+              AUTHENTICATE
+            </h1>
 
-          {/* PASSWORD INPUT */}
-          <input
-            type="password"
-            placeholder="Enter your password"
-            className="w-full py-4 mb-4 px-5 bg-gray-800 rounded-full outline-none text-sm border border-gray-700"
-          />
-
-          <div className="flex justify-between items-center text-xs text-gray-400 mb-8">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" /> Remember
-            </label>
-            <button className="hover:text-white transition">
-              Forgot password?
+            {/* Google Button (optional, still kept) */}
+            <button
+              onClick={handleGoogleLogin}
+              className="bg-white text-black w-full max-w-md py-4 rounded-full flex items-center justify-center gap-3 shadow-lg text-lg font-medium hover:scale-[1.02] transition"
+            >
+              <img
+                src="https://developers.google.com/identity/images/g-logo.png"
+                className="h-6 w-6"
+                alt="Google"
+              />
+              Sign in with Google
             </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 my-8 text-sm text-gray-400">
+              <div className="h-[1px] w-80 bg-teal-400"></div>
+            </div>
+
+            {/* ================= CLICKABLE FINGERPRINT ================= */}
+            <div
+              onClick={handleGoogleLogin}
+              className="relative mt-6 mb-6 cursor-pointer group"
+            >
+              <div
+                className="w-44 h-44 rounded-full border-2 border-teal-400
+                           flex items-center justify-center
+                           shadow-[0_0_40px_#2dd4bf]
+                           transition
+                           group-hover:shadow-[0_0_70px_#2dd4bf]
+                           animate-pulse"
+              >
+                <img
+                  src="https://cdn2.vectorstock.com/i/1000x1000/14/26/technology-digital-cyber-security-lock-circle-vector-16271426.jpg"
+                  className="w-28 opacity-90"
+                  alt="Fingerprint Login"
+                />
+              </div>
+
+              {/* small security icons */}
+              <span className="absolute top-3 left-5 text-teal-400">🔒</span>
+              <span className="absolute bottom-4 right-6 text-teal-400">🛡️</span>
+            </div>
+
+            <p className="text-sm text-gray-400">
+              Sign in with <span className="text-teal-400">Google</span>
+            </p>
           </div>
-
-          {/* NORMAL LOGIN BUTTON (not functional) */}
-          <button className="w-full py-4 bg-[#7ae0b3] text-black rounded-full font-semibold text-lg hover:bg-[#6ed5a8] transition">
-            LOGIN
-          </button>
-
-          <p className="text-center text-xs mt-5">
-            Not registered yet?{" "}
-            <span className="text-[#7ae0b3] hover:underline cursor-pointer">
-              Create an account
-            </span>
-          </p>
         </div>
 
-        {/* RIGHT SIDE — VERIFIX THEME PANEL */}
-        <div className="w-1/2 bg-gradient-to-b from-[#9be2b4] to-[#4ea577] text-black flex flex-col justify-center items-center px-10 text-center">
-          <h1 className="text-4xl font-semibold mb-3 font-[cursive]">
+        {/* ================= RIGHT — VERIFIX PANEL ================= */}
+        <div className="w-1/2 bg-gradient-to-b from-[#c8f3d4] to-[#8ad8a6] flex flex-col justify-center items-center px-12 text-center">
+
+          <h1 className="text-4xl font-extrabold mb-4 text-[#0b3d2e]">
             Welcome to VerifiX
           </h1>
 
-          <p className="text-sm leading-relaxed mb-6 text-gray-900">
+          <p className="text-base leading-relaxed mb-8 text-[#0f2e24] max-w-md">
             Your trusted platform for secure and AI-powered document verification.
             Instantly submit, track, and get authenticated certificates —
             built for students, colleges, and administrators.
           </p>
 
           <img
-            src="https://cdn-icons-png.flaticon.com/512/3209/3209265.png"
+            src={loginPic}
             alt="Document Verification"
-            className="w-48 mt-4 drop-shadow-xl"
+            className="w-[340px] rounded-xl shadow-xl mb-6"
           />
 
-          <p className="mt-6 text-xs text-gray-800 font-medium">
+          <p className="text-sm text-[#0f2e24] font-semibold tracking-wide">
             Fast • Secure • Automated Verification
           </p>
         </div>
+
       </div>
     </div>
   );

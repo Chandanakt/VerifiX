@@ -1,19 +1,25 @@
 import React from "react";
+import { auth } from "../firebase";
 
 export default function Topbar() {
+  const user = auth.currentUser;
+
   return (
-    <header className="flex items-center justify-between p-4 bg-white shadow-sm">
+    <div className="w-full bg-[#F5FFF9] border-b border-[#D9F3E6] px-8 py-4 flex justify-between items-center shadow-sm">
+
       <input
+        type="text"
         placeholder="Search documents..."
-        className="px-4 py-2 border rounded-full w-80 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+        className="w-96 px-4 py-2 bg-white border border-[#D9F3E6] rounded-xl text-[#2D4C3B] outline-none focus:ring-2 focus:ring-[#9BE2B4]"
       />
 
       <div className="flex items-center gap-3">
-        <span className="text-gray-600">Chandana</span>
-        <div className="w-10 h-10 bg-indigo-300 rounded-full flex items-center justify-center text-white font-bold">
-          CK
+        <span className="text-[#2D4C3B] font-medium">{user?.displayName}</span>
+
+        <div className="w-10 h-10 bg-[#D0F0DF] rounded-full flex items-center justify-center text-[#1F3B2F] font-semibold">
+          {user?.displayName?.[0]}
         </div>
       </div>
-    </header>
+    </div>
   );
 }
