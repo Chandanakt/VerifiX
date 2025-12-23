@@ -57,56 +57,35 @@ It eliminates fake certificates, manual delays, and opaque approvals by combinin
 -- Download approved certificates
 -- Verify issued certificates anytime
 
-🧠 AI Processing Flow
+### 🧠 AI Processing Flow
+- Student uploads document or submits certificate request
+- Firestore trigger activates Cloud Function
+- OCR extraction using Google Cloud Vision
+- Gemini AI performs forensic analysis
+- Trust score and reasons generated
+- Admin approves or rejects
+- Approved → certificate PDF generated with QR code
+- Certificate becomes publicly verifiable
 
-Student uploads document or submits certificate request
+### 🧩 Technology Stack
+## 🔹 Google Technologies
+- Google Gemini API – AI forensic reasoning & trust score
+- Firebase Authentication – Secure login
+- Cloud Firestore – Real-time database
+- Firebase Cloud Functions – Serverless backend
+- Google Cloud Vision API – OCR extraction
+- Firebase Cloud Storage – Certificate storage
+- Google QR ecosystem – Public verification
 
-Firestore trigger activates Cloud Function
+## 🔹 Frontend
+- React.js
+- Tailwind CSS
+- React Router
 
-OCR extraction using Google Cloud Vision
-
-Gemini AI performs forensic analysis
-
-Trust score and reasons generated
-
-Admin approves or rejects
-
-Approved → certificate PDF generated with QR code
-
-Certificate becomes publicly verifiable
-
-🧩 Technology Stack
-🔹 Google Technologies
-
-Google Gemini API – AI forensic reasoning & trust score
-
-Firebase Authentication – Secure login
-
-Cloud Firestore – Real-time database
-
-Firebase Cloud Functions – Serverless backend
-
-Google Cloud Vision API – OCR extraction
-
-Firebase Cloud Storage – Certificate storage
-
-Google QR ecosystem – Public verification
-
-🔹 Frontend
-
-React.js
-
-Tailwind CSS
-
-React Router
-
-🔹 Backend
-
-Firebase Cloud Functions (Node.js)
-
-pdf-lib (PDF generation)
-
-QRCode library
+## 🔹 Backend
+- Firebase Cloud Functions (Node.js)
+- pdf-lib (PDF generation)
+- QRCode library
 
 ## Project Structure
 
