@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { db, storage, auth } from "../firebase";
+import { db, auth } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useNavigate } from "react-router-dom";
-import { v4 as uuidv4 } from "uuid";
+
+const BACKEND_URL = "https://YOUR_CLOUD_RUN_URL"; // 🔁 replace after deploy
 
 export default function NewRequest() {
   const [type, setType] = useState("BONAFIDE");
@@ -13,7 +13,7 @@ export default function NewRequest() {
 
   const navigate = useNavigate();
 
-  // 🔐 Wait until Firebase Auth is ready
+  // 🔐 Ensure auth is ready
   if (!auth.currentUser) {
     return <div>Loading user...</div>;
   }
@@ -22,11 +22,11 @@ export default function NewRequest() {
     e.preventDefault();
 
     if (!file) {
-      alert("Upload required document.");
+      alert("Please select a document.");
       return;
     }
 
-    // ✅ File type validation (engineering polish)
+    // ✅ File validation (engineering polish)
     if (
       !file.type.includes("pdf") &&
       !file.type.includes("image")
@@ -39,43 +39,47 @@ export default function NewRequest() {
       setLoading(true);
 
       const user = auth.currentUser;
-      const fileId = uuidv4();
 
-      // Upload to Firebase Storage
-      const storageRef = ref(
-        storage,
-        `uploads/${user.uid}/${fileId}-${file.name}`
-      );
-
-      await uploadBytes(storageRef, file);
-      const fileUrl = await getDownloadURL(storageRef);
-
-      // Create Firestore request document
-      await addDoc(collection(db, "requests"), {
+      // 🔥 STEP 1: Create Firestore request (NO FILE STORAGE)
+      const docRef = await addDoc(collection(db, "requests"), {
         userId: user.uid,
         userEmail: user.email,
         type,
         purpose,
 
-        // 🔥 AI pipeline starts here
-        status: "PENDING_AI_CHECK",
-        aiVerdict: null,
-        aiConfidence: null,
-        aiReasons: [],
+        status: "PENDING_FORENSICS",
+
+        trustReport: null,
 
         attachment: {
           name: file.name,
-          url: fileUrl,
+          // 🔐 No real upload in hackathon demo
+          url: `local-demo://${file.name}`,
         },
 
         createdAt: serverTimestamp(),
       });
 
-      alert("Request submitted successfully");
+      // 🔥 STEP 2: Trigger AI forensics (Cloud Run)
+      await fetch(`${BACKEND_URL}/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requestId: docRef.id,
+          type,
+          purpose,
+          fileName: file.name,
+        }),
+      });
+
+      alert("Request submitted. AI analysis in progress.");
       navigate("/student/requests");
+
     } catch (err) {
       console.error("Request submission failed:", err);
-      alert("Failed to submit request");
+      alert("Failed to submit request.");
     } finally {
       setLoading(false);
     }

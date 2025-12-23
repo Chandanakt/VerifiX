@@ -11,6 +11,8 @@ import MyRequests from "./pages/MyRequests";
 import NewRequest from "./pages/NewRequest";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminRequest from "./pages/AdminRequestDetails";
+import VerifyCertificate from "./pages/VerifyCertificate";
+
 
 export default function App() {
   const [user, authLoading] = useAuthState(auth);
@@ -34,6 +36,9 @@ export default function App() {
         <main className="p-6 overflow-auto bg-mintLight min-h-screen">
 
           <Routes>
+            {/* PUBLIC VERIFICATION */}
+            <Route path="/verify/:id" element={<VerifyCertificate />} />
+
             {/* Student routes */}
             {role === "student" && (
               <>

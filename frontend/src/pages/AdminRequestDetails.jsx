@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
-// 🔁 REPLACE with your real Cloud Functions base URL
-const BASE = "https://us-central1-YOUR_PROJECT_ID.cloudfunctions.net";
+// 🔁 Replace AFTER deploying Cloud Run
+const BACKEND_URL = "https://YOUR_CLOUD_RUN_URL";
 
 export default function AdminRequestDetails() {
   const { id } = useParams();
@@ -19,12 +19,17 @@ export default function AdminRequestDetails() {
     });
   }, [id]);
 
-  const callFunction = async (name) => {
-    await fetch(`${BASE}/${name}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId: id }),
-    });
+  const callBackend = async (endpoint) => {
+    try {
+      await fetch(`${BACKEND_URL}/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: id }),
+      });
+    } catch (err) {
+      console.error("Backend call failed:", err);
+      alert("Action failed. Check backend.");
+    }
   };
 
   if (!req) return <div>Loading request...</div>;
@@ -36,61 +41,84 @@ export default function AdminRequestDetails() {
         Request Details
       </h2>
 
+      {/* 📄 BASIC INFO */}
       <div className="space-y-2 mb-6">
         <p><strong>User:</strong> {req.userEmail}</p>
         <p><strong>Document Type:</strong> {req.type}</p>
         <p>
           <strong>Status:</strong>{" "}
-          <span className={`px-3 py-1 rounded text-sm font-semibold ${
-            req.status === "APPROVED"
-              ? "bg-green-100 text-green-800"
-              : req.status === "REJECTED"
-              ? "bg-red-100 text-red-800"
-              : "bg-yellow-100 text-yellow-800"
-          }`}>
-            {req.status.replaceAll("_", " ")}
+          <span
+            className={`px-3 py-1 rounded text-sm font-semibold ${
+              req.status === "APPROVED"
+                ? "bg-green-100 text-green-800"
+                : req.status === "REJECTED"
+                ? "bg-red-100 text-red-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}
+          >
+            {req.status?.replaceAll("_", " ")}
           </span>
         </p>
       </div>
 
-      {/* 🤖 AI ANALYSIS */}
+      {/* 🤖 AI TRUST REPORT */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">AI Analysis (Gemini)</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          AI Trust Analysis (Gemini)
+        </h3>
 
-        {req.aiVerdict ? (
+        {req.trustReport ? (
           <div className="bg-white p-4 rounded border">
-            <p>
-              <strong>Verdict:</strong> {req.aiVerdict}
+
+            {/* Score */}
+            <p className="mb-2">
+              <strong>Trust Score:</strong>{" "}
+              <span className="font-semibold">
+                {req.trustReport.score} / 100
+              </span>
             </p>
-            <p>
-              <strong>Confidence:</strong> {req.aiConfidence}%
+
+            {/* Verdict */}
+            <p className="mb-2">
+              <strong>Verdict:</strong>{" "}
+              <span
+                className={`font-semibold ${
+                  req.trustReport.verdict === "AUTHENTIC"
+                    ? "text-green-700"
+                    : "text-red-700"
+                }`}
+              >
+                {req.trustReport.verdict}
+              </span>
             </p>
-            <ul className="list-disc ml-5 mt-2 text-sm text-gray-600">
-              {req.aiReasons?.map((r, i) => (
-                <li key={i}>{r}</li>
+
+            {/* Signals */}
+            <ul className="list-disc ml-5 text-sm text-gray-600">
+              {req.trustReport.signals?.map((s, i) => (
+                <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
         ) : (
           <p className="text-gray-500">
-            AI analysis pending or failed.
+            AI analysis pending or unavailable.
           </p>
         )}
       </div>
 
-      {/* 🎯 ACTIONS */}
-      {req.status === "PENDING_ADMIN_REVIEW" && (
+      {/* 🎯 ADMIN ACTIONS */}
+      {req.status === "PENDING_ADMIN" && (
         <div className="flex gap-4">
           <button
-            onClick={() => callFunction("approveRequest")}
-            className="px-6 py-2 bg-green-600 text-white rounded"
+            onClick={() => callBackend("approve")}
+            className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700"
           >
-            Approve
+            Approve & Issue Certificate
           </button>
 
           <button
-            onClick={() => callFunction("rejectRequest")}
-            className="px-6 py-2 bg-red-600 text-white rounded"
+            onClick={() => callBackend("reject")}
+            className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Reject
           </button>
