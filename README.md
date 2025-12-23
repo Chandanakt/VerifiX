@@ -1,143 +1,96 @@
-# VerifiX
-VerifiX – AI-Powered Document Verification &amp; Certificate Automation
-🛡️ VerifiX is a secure, AI-driven academic document platform that enables students, colleges, and third parties to verify, request, issue, and publicly validate academic certificates using Google AI, Firebase, and QR-based verification.
+# 🛡️ VerifiX – AI-Powered Document Verification &amp; Certificate Automation
+
+**VerifiX** is a secure, AI-driven academic document platform that enables students, colleges, and third parties to verify, request, issue, and publicly validate academic certificates using Google AI, Firebase, and QR-based verification.
 
 It eliminates fake certificates, manual delays, and opaque approvals by combining AI forensic analysis, human-in-the-loop approval, and tamper-proof digital certificates.
 
-Problem Statement
+## ✨ Key Features
 
-Academic institutions face:
+### 🔍 Document Originality Verification
+- Upload existing academic documents (Bonafide, Transcript, NOC, etc.)
+- AI-based forensic analysis using Gemini:
+- Logical inconsistencies
+- Date conflicts
+- Formatting anomalies
+- Suspicious textual patterns
+- Generates Explainable Trust Score with reasons
+- Admin review for high-risk documents
 
-Fake and tampered certificates
+### 🏛️ Official Certificate Request
+- Students can request new certificates from the college
+- Supported certificate types:
+- Bonafide
+- NOC
+- Transcript
+- Fee Receipt
+- Requests follow a AI → Admin approval workflow
+- Students can delete requests before admin action
 
-Manual, time-consuming verification processes
+### 📄 Automated Certificate Generation
+- Approved requests generate official certificates using:
+- Prescribed college templates
+- Student details
+- Authority digital signature
+- Unique QR code
+- Certificates generated as tamper-proof PDFs
 
-No public verification mechanism
+### 🔍 Public Verification via QR Code
+- Each certificate contains a QR code
+- QR scan opens a public verification page
+- Displays:
+-- Certificate validity
+-- Student email
+-- Certificate type
+- Purpose:Issuing authority & Verification engine
 
-Lack of transparency in approval decisions
+### 👨‍⚖️ Human-in-the-Loop Admin Workflow
+- AI performs initial forensic analysis
+- Admin reviews trust score and AI reasons
+- Final approval or rejection by admin
+- Full transparency in decision-making
+  
+### 👩‍🎓 Student Dashboard
+- Two clear flows:
+-- Verify existing documents
+-- Request new certificates
+-- Track request status in real time
+-- Download approved certificates
+-- Verify issued certificates anytime
 
-VerifiX solves this by creating a digital trust layer for academic documents.
+🧠 AI Processing Flow
 
-Key Features
-AI Document Forensics
+Student uploads document or submits certificate request
 
-Upload existing documents for authenticity checks
+Firestore trigger activates Cloud Function
 
-Gemini AI analyzes:
+OCR extraction using Google Cloud Vision
 
-Logical inconsistencies
+Gemini AI performs forensic analysis
 
-Formatting anomalies
+Trust score and reasons generated
 
-Date conflicts
+Admin approves or rejects
 
-Suspicious patterns
-
-Generates Explainable Trust Score with reasons
-🏛️ Certificate Request & Issuance
-
-Students request official documents (Bonafide, NOC, Transcript, etc.)
-
-Admin reviews AI results and approves/rejects
-
-System generates certificates using:
-
-Prescribed college templates
-
-Student details
-
-Authority digital signature
-
-Unique QR code
-
-📄 Tamper-Proof Certificates
-
-Auto-generated PDF certificates
-
-Embedded QR code for verification
-
-Secure download links
-
-Stored and accessible from Student Dashboard
-🔍 Public Verification via QR Scan
-
-Anyone can scan QR using a phone camera
-
-Opens a public verification page
-
-Displays:
-
-Certificate validity
-
-Student details
-
-Issuing authority
-
-Verification engine (TrustAnchor AI)
-
-👨‍⚖️ Human-in-the-Loop Admin Workflow
-
-AI performs first-level analysis
-
-Admin takes final decision
-
-Trust score + AI reasons shown to admin
-
-Students can delete requests before admin action
-👩‍🎓 Student Dashboard
-
-Two clear flows:
-
-Verify existing documents
-
-Request new certificates
-
-View request status
-
-Download approved certificates
-
-Verify issued certificates anytime
-
-🧠 AI Workflow
-
-Student uploads document or requests certificate
-
-Firebase Cloud Function triggers:
-
-OCR (Google Vision API)
-
-AI forensic analysis (Gemini)
-
-AI generates:
-
-Verdict
-
-Confidence score
-
-Reasoning
-
-Admin reviews & approves
-
-System generates QR-enabled certificate
+Approved → certificate PDF generated with QR code
 
 Certificate becomes publicly verifiable
 
-🧩 Tech Stack
-🔹 Google Technologies Used
+🧩 Technology Stack
+🔹 Google Technologies
 
-Google Gemini API – AI forensic analysis
+Google Gemini API – AI forensic reasoning & trust score
 
-Firebase Authentication – Secure user login
+Firebase Authentication – Secure login
 
 Cloud Firestore – Real-time database
 
 Firebase Cloud Functions – Serverless backend
 
-Google Cloud Vision API – OCR
+Google Cloud Vision API – OCR extraction
 
-Google Cloud Storage – Certificate storage
+Firebase Cloud Storage – Certificate storage
 
-Google QR Code verification flow
+Google QR ecosystem – Public verification
 
 🔹 Frontend
 
@@ -151,11 +104,13 @@ React Router
 
 Firebase Cloud Functions (Node.js)
 
-pdf-lib (certificate generation)
+pdf-lib (PDF generation)
 
 QRCode library
 
-📁 Project Structure
+## Project Structure
+
+```
 VerifiX/
 ├── frontend/
 │   ├── pages/
@@ -169,87 +124,40 @@ VerifiX/
 │   └── App.jsx
 │
 ├── functions/
-│   ├── index.js        # AI pipeline + certificate generation
+│   ├── index.js        # AI pipeline & certificate generation
 │   └── package.json
 │
 └── README.md
 
-🚀 Setup Instructions
-1️⃣ Clone Repository
-git clone https://github.com/your-username/VerifiX.git
-cd VerifiX
+```
+### 🔐 Security & Privacy
+- No hardcoded API keys
+- Role-based access control
+- Public verification is read-only
+- Requests deletable only before admin action
+- Certificates immutable after issuance
 
-2️⃣ Frontend Setup
-cd frontend
-npm install
-npm run dev
+### 📊 Usage Guide
+#### 1. Verify Existing Document
+- Upload document
+- Select type and purpose
+- AI generates trust score
+- Admin review if required
+  
+#### 2. Request New Certificate
+- Submit certificate request
+- Admin reviews AI analysis
+- Certificate generated on approval
+- Available for download and verification
 
-3️⃣ Firebase Setup
+#### 3. Public Verification
+- Scan QR code on certificate
+- Opens verification page
+- Displays certificate authenticity
 
-Create Firebase project
-
-Enable:
-
-Authentication (Email/Google)
-
-Firestore
-
-Cloud Functions
-
-Cloud Storage
-
-4️⃣ Configure Gemini API Key
-firebase functions:config:set gemini.key="YOUR_GEMINI_API_KEY"
-
-5️⃣ Deploy Backend
-cd functions
-npm install
-firebase deploy --only functions
-
-🔐 Security & Privacy
-
-No hardcoded API keys
-
-Role-based access (Student/Admin)
-
-Public verification is read-only
-
-Students can delete pending requests
-
-Certificates cannot be modified after issuance
-
-📊 Use Cases
-
-Internship & placement verification
-
-Scholarship applications
-
-University admissions
-
-Embassy & visa checks
-
-Employer background verification
-
-🌱 Future Enhancements
-
-Google Wallet integration
-
-Blockchain hash anchoring
-
-Multi-college onboarding
-
-API access for recruiters & embassies
-
-Advanced forgery detection (deepfake, metadata)
-
-🏆 Why VerifiX Wins Hackathons
-
-Solves a real, painful problem
-
-Uses Google AI meaningfully
-
-Demonstrates end-to-end engineering
-
-Clear social & institutional impact
-
-Scalable, secure, and practical
+### 🌱 Future Enhancements
+- Google Wallet integration
+- Blockchain hash anchoring
+- Multi-institution onboarding
+- API access for recruiters and embassies
+- Advanced forgery detection
