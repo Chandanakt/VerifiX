@@ -2,7 +2,6 @@
   "functions": {
     "source": "functions"
   },
-
   "hosting": {
     "public": "frontend/dist",
     "ignore": [
@@ -17,13 +16,31 @@
       }
     ]
   },
-
   "firestore": {
     "rules": "firestore.rules"
   },
-
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true,
+    "auth": {
+      "port": 9099
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "storage": {
+      "port": 9199
+    }
   }
 }
-

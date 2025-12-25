@@ -12,6 +12,8 @@ import NewRequest from "./pages/NewRequest";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminRequest from "./pages/AdminRequestDetails";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import RequestCertificate from "./pages/RequestCertificate";
+import MyCertificates from "./pages/MyCertificates"
 
 
 export default function App() {
@@ -37,14 +39,18 @@ export default function App() {
 
           <Routes>
             {/* PUBLIC VERIFICATION */}
-            <Route path="/verify/:id" element={<VerifyCertificate />} />
+            <Route path="/verify/:certId" element={<VerifyCertificate />} />
+
 
             {/* Student routes */}
             {role === "student" && (
               <>
-                <Route path="/student" element={<StudentDashboard />} />
+                <Route path="/" element={<StudentDashboard />} />
                 <Route path="/student/requests" element={<MyRequests />} />
                 <Route path="/student/new" element={<NewRequest />} />
+                <Route path="/student/verify" element={<VerifyCertificate />} />
+                <Route path="/student/request-certificate"element={<RequestCertificate />} />
+                <Route path="/student/certificates" element={<MyCertificates />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </>
             )}

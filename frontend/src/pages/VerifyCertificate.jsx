@@ -1,136 +1,107 @@
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { db } from "../firebase";
+import { useParams, Link } from "react-router-dom";
+import { db, auth } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 export default function VerifyCertificate() {
-  const { id } = useParams();
+  const { certId } = useParams(); // /verify/:certId
   const [data, setData] = useState(null);
+  const [invalid, setInvalid] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchCertificate() {
+    async function load() {
       try {
-        const snap = await getDoc(doc(db, "requests", id));
+        const ref = doc(db, "requests", certId);
+        const snap = await getDoc(ref);
 
-        if (snap.exists() && snap.data().status === "APPROVED") {
-          setData(snap.data());
+        if (!snap.exists()) {
+          setInvalid(true);
         } else {
-          setData(null);
+          const d = snap.data();
+
+          // 🔐 Optional: restrict to owner
+          if (auth.currentUser && d.userId !== auth.currentUser.uid) {
+            setInvalid(true);
+          } else if (d.status !== "APPROVED") {
+            setInvalid(true);
+          } else {
+            setData(d);
+          }
         }
-      } catch (err) {
-        console.error("Verification failed:", err);
-        setData(null);
+      } catch {
+        setInvalid(true);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchCertificate();
-  }, [id]);
+    load();
+  }, [certId]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#EAF7EF]">
-        <p className="text-lg text-gray-600">
-          Verifying certificate…
-        </p>
+      <div className="min-h-screen flex items-center justify-center">
+        Verifying certificate...
       </div>
     );
   }
 
-  /* ❌ INVALID / UNAPPROVED */
-  if (!data) {
+  if (invalid) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#EAF7EF] p-6">
-        <div className="bg-[#F5FFF9] p-8 rounded-2xl shadow border border-[#D9F3E6] max-w-md text-center">
-          <h2 className="text-2xl font-semibold text-red-600 mb-3">
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="bg-white p-8 rounded-xl shadow text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">
             ❌ Invalid Certificate
           </h2>
           <p className="text-gray-600">
-            This certificate is either invalid, revoked, or not approved.
+            This certificate is invalid, not approved, or not yours.
           </p>
         </div>
       </div>
     );
   }
 
-  /* ✅ VALID CERTIFICATE */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#EAF7EF] p-6">
-      <div className="bg-[#F5FFF9] p-8 rounded-3xl shadow border border-[#D9F3E6] max-w-lg w-full">
+    <div className="min-h-screen flex items-center justify-center bg-[#EAF7EF]">
+      <div className="bg-white p-10 rounded-3xl shadow-xl max-w-xl w-full">
 
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-semibold text-[#1F3B2F]">
-            ✅ Certificate Verified
-          </h1>
-          <p className="text-sm text-gray-600 mt-2">
-            Verified securely via VerifiX
-          </p>
+        <h1 className="text-3xl font-bold text-green-600 mb-6 text-center">
+          ✔ Certificate Verified
+        </h1>
+
+        <div className="space-y-3 text-sm">
+          <Info label="Student Email" value={data.userEmail} />
+          <Info label="Certificate Type" value={data.type} />
+          <Info label="Purpose" value={data.purpose} />
+          <Info label="Issued By" value="College Authority" />
+          <Info label="Verification Engine" value="VerifiX TrustAnchor" />
         </div>
 
-        {/* Certificate Details */}
-        <div className="space-y-4 text-[#2D4C3B]">
+        <div className="mt-6 flex justify-between text-sm">
+          <a
+            href={data.generatedCertificate.downloadUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-green-700 underline"
+          >
+            ⬇ Download Certificate
+          </a>
 
-          <Detail label="Student Email" value={data.userEmail} />
-          <Detail label="Document Type" value={data.type} />
-          <Detail label="Purpose" value={data.purpose} />
-
-          {data.certificate?.issuedAt && (
-            <Detail
-              label="Issued On"
-              value={new Date(
-                data.certificate.issuedAt
-              ).toLocaleString()}
-            />
-          )}
-
-          {/* Trust Score */}
-          {data.trustReport && (
-            <div className="mt-4 p-4 bg-white rounded-xl border">
-              <p className="text-sm font-medium mb-1">
-                AI Trust Score
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full ${
-                      data.trustReport.score >= 75
-                        ? "bg-green-500"
-                        : "bg-yellow-500"
-                    }`}
-                    style={{
-                      width: `${data.trustReport.score}%`,
-                    }}
-                  ></div>
-                </div>
-                <span className="text-sm font-semibold">
-                  {data.trustReport.score}/100
-                </span>
-              </div>
-            </div>
-          )}
+          <Link to="/student" className="text-blue-600 underline">
+            Back to Dashboard
+          </Link>
         </div>
-
-        {/* Footer */}
-        <div className="mt-8 text-center text-xs text-gray-500">
-          This certificate was issued digitally by VerifiX  
-          <br />
-          Tamper-resistant • QR-verified • Secure
-        </div>
-
       </div>
     </div>
   );
 }
 
-/* 🔹 Reusable detail row */
-function Detail({ label, value }) {
+function Info({ label, value }) {
   return (
-    <div className="flex justify-between text-sm">
+    <div className="flex justify-between border-b pb-1">
       <span className="text-gray-600">{label}</span>
-      <span className="font-medium">{value}</span>
+      <span className="font-medium text-gray-800">{value}</span>
     </div>
   );
 }

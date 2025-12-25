@@ -1,21 +1,39 @@
-import React from "react";
+import React, { useEffect } from "react";
 import loginPic from "./login_pic.jpg";
 import { auth, googleProvider, db } from "../firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-auth.signOut();
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import {
   setPersistence,
   browserSessionPersistence,
   signInWithPopup,
 } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+
+/* 🔐 ADMIN EMAILS (hackathon-safe approach) */
+const ADMIN_EMAILS = [
+  "admin@college.edu",
+  "verifix.admin@gmail.com", // 👈 put your admin gmail here
+];
 
 export default function Login() {
+  const navigate = useNavigate();
+
+  /* Ensure clean session */
+  useEffect(() => {
+    auth.signOut();
+  }, []);
+
   const handleGoogleLogin = async () => {
     try {
       await setPersistence(auth, browserSessionPersistence);
 
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+
+      /* 🧠 ROLE DECISION */
+      const role = ADMIN_EMAILS.includes(user.email)
+        ? "admin"
+        : "student";
 
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
@@ -25,12 +43,20 @@ export default function Login() {
           uid: user.uid,
           name: user.displayName,
           email: user.email,
-          role: "student",
-          createdAt: new Date(),
+          role,
+          createdAt: serverTimestamp(),
         });
       }
 
-      console.log("Login success");
+      console.log("Login success as:", role);
+
+      /* 🚦 ROLE-BASED REDIRECT */
+      if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/student");
+      }
+
     } catch (error) {
       console.error("Login failed:", error);
       alert("Login failed. Try again.");
@@ -44,10 +70,9 @@ export default function Login() {
     >
       <div className="w-[1100px] h-[600px] bg-white rounded-3xl shadow-2xl overflow-hidden flex">
 
-        {/* ================= LEFT — AUTHENTICATE PANEL ================= */}
+        {/* LEFT PANEL */}
         <div className="w-1/2 bg-[#0b0f14] text-white flex flex-col items-center justify-center relative overflow-hidden">
 
-          {/* Background glow */}
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,#1f3b4d,transparent_40%),radial-gradient(circle_at_bottom_right,#0fb9b1,transparent_40%)]"></div>
 
           <div className="z-10 flex flex-col items-center w-full px-16">
@@ -56,7 +81,6 @@ export default function Login() {
               AUTHENTICATE
             </h1>
 
-            {/* Google Button (optional, still kept) */}
             <button
               onClick={handleGoogleLogin}
               className="bg-white text-black w-full max-w-md py-4 rounded-full flex items-center justify-center gap-3 shadow-lg text-lg font-medium hover:scale-[1.02] transition"
@@ -69,12 +93,11 @@ export default function Login() {
               Sign in with Google
             </button>
 
-            {/* Divider */}
             <div className="flex items-center gap-4 my-8 text-sm text-gray-400">
               <div className="h-[1px] w-80 bg-teal-400"></div>
             </div>
 
-            {/* ================= CLICKABLE FINGERPRINT ================= */}
+            {/* Fingerprint */}
             <div
               onClick={handleGoogleLogin}
               className="relative mt-6 mb-6 cursor-pointer group"
@@ -93,10 +116,6 @@ export default function Login() {
                   alt="Fingerprint Login"
                 />
               </div>
-
-              {/* small security icons */}
-              <span className="absolute top-3 left-5 text-teal-400">🔒</span>
-              <span className="absolute bottom-4 right-6 text-teal-400">🛡️</span>
             </div>
 
             <p className="text-sm text-gray-400">
@@ -105,7 +124,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* ================= RIGHT — VERIFIX PANEL ================= */}
+        {/* RIGHT PANEL */}
         <div className="w-1/2 bg-gradient-to-b from-[#c8f3d4] to-[#8ad8a6] flex flex-col justify-center items-center px-12 text-center">
 
           <h1 className="text-4xl font-extrabold mb-4 text-[#0b3d2e]">
@@ -113,9 +132,8 @@ export default function Login() {
           </h1>
 
           <p className="text-base leading-relaxed mb-8 text-[#0f2e24] max-w-md">
-            Your trusted platform for secure and AI-powered document verification.
-            Instantly submit, track, and get authenticated certificates —
-            built for students, colleges, and administrators.
+            Secure AI-powered document verification & certificate issuance
+            for students and institutions.
           </p>
 
           <img
@@ -124,8 +142,8 @@ export default function Login() {
             className="w-[340px] rounded-xl shadow-xl mb-6"
           />
 
-          <p className="text-sm text-[#0f2e24] font-semibold tracking-wide">
-            Fast • Secure • Automated Verification
+          <p className="text-sm font-semibold text-[#0f2e24]">
+            Fast • Secure • Automated
           </p>
         </div>
 

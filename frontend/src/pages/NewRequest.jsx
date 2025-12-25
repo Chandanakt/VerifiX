@@ -3,7 +3,8 @@ import { db, auth } from "../firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL = "https://YOUR_CLOUD_RUN_URL"; // 🔁 replace after deploy
+const BACKEND_URL =
+  "http://127.0.0.1:5001/verifix-be399/us-central1";
 
 export default function NewRequest() {
   const [type, setType] = useState("BONAFIDE");
@@ -13,7 +14,6 @@ export default function NewRequest() {
 
   const navigate = useNavigate();
 
-  // 🔐 Ensure auth is ready
   if (!auth.currentUser) {
     return <div>Loading user...</div>;
   }
@@ -26,52 +26,35 @@ export default function NewRequest() {
       return;
     }
 
-    // ✅ File validation (engineering polish)
-    if (
-      !file.type.includes("pdf") &&
-      !file.type.includes("image")
-    ) {
-      alert("Only PDF or image files are allowed.");
-      return;
-    }
+    setLoading(true);
 
     try {
-      setLoading(true);
-
       const user = auth.currentUser;
 
-      // 🔥 STEP 1: Create Firestore request (NO FILE STORAGE)
-      const docRef = await addDoc(collection(db, "requests"), {
+      await addDoc(collection(db, "requests"), {
         userId: user.uid,
         userEmail: user.email,
-        type,
+
+        requestedType: type,
         purpose,
 
-        status: "PENDING_FORENSICS",
-
-        trustReport: null,
-
+        // 🔥 THIS IS CRITICAL
         attachment: {
           name: file.name,
-          // 🔐 No real upload in hackathon demo
-          url: `local-demo://${file.name}`,
+          mimeType: file.type,
+          size: file.size,
+          uploaded: true, // UI hint only
         },
+
+        // AI fields (will be filled by backend trigger)
+        aiVerdict: null,
+        aiConfidence: null,
+        aiReasons: [],
+        aiCompleted: false,
+
+        status: "PENDING_ADMIN",
 
         createdAt: serverTimestamp(),
-      });
-
-      // 🔥 STEP 2: Trigger AI forensics (Cloud Run)
-      await fetch(`${BACKEND_URL}/analyze`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          requestId: docRef.id,
-          type,
-          purpose,
-          fileName: file.name,
-        }),
       });
 
       alert("Request submitted. AI analysis in progress.");
@@ -79,7 +62,7 @@ export default function NewRequest() {
 
     } catch (err) {
       console.error("Request submission failed:", err);
-      alert("Failed to submit request.");
+      alert("Could not create request.");
     } finally {
       setLoading(false);
     }
@@ -87,7 +70,6 @@ export default function NewRequest() {
 
   return (
     <div className="bg-[#F5FFF9] p-6 rounded-2xl shadow border border-[#D9F3E6]">
-
       <h2 className="text-2xl font-bold mb-4 text-[#1F3B2F]">
         Create Request
       </h2>
@@ -125,35 +107,25 @@ export default function NewRequest() {
           />
         </div>
 
-        {/* Upload File (Styled Button) */}
+        {/* Upload */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Upload Document
           </label>
 
-          <div className="flex items-center gap-4">
-            <input
-              type="file"
-              id="fileUpload"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files[0])}
-              required
-            />
+          <input
+            type="file"
+            accept=".pdf,image/*"
+            onChange={(e) => setFile(e.target.files[0])}
+          />
 
-            <label
-              htmlFor="fileUpload"
-              className="px-6 py-2 bg-[#1F3B2F] text-white rounded cursor-pointer hover:bg-[#163025] transition"
-            >
-              Choose File
-            </label>
-
-            <span className="text-sm text-gray-600">
-              {file ? file.name : "No file chosen"}
-            </span>
-          </div>
+          {file && (
+            <p className="text-sm text-gray-600 mt-1">
+              Selected: {file.name}
+            </p>
+          )}
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
