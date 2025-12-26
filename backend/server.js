@@ -43,7 +43,6 @@ app.post("/createRequest", async (req, res) => {
     const data = req.body;
     console.log("🤖 AI analysis triggered for:", data.userEmail);
 
-    // Creating the document WITH AI fields automatically
     const newRequest = {
       ...data,
       aiVerdict: "AUTHENTIC",
@@ -62,7 +61,7 @@ app.post("/createRequest", async (req, res) => {
     
     res.status(201).json({ success: true, id: docRef.id });
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error in createRequest:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -75,9 +74,11 @@ app.post("/approveRequest", async (req, res) => {
     const { requestId } = req.body;
     const ref = db.collection("requests").doc(requestId);
     const snap = await ref.get();
-    if (!snap.exists) return res.status(404).send("Not found");
+    
+    if (!snap.exists) return res.status(404).send("Request not found");
     const data = snap.data();
 
+    // Generate PDF
     const pdf = await PDFDocument.create();
     const page = pdf.addPage([595, 842]);
     const font = await pdf.embedFont(StandardFonts.TimesRomanBold);
@@ -85,39 +86,82 @@ app.post("/approveRequest", async (req, res) => {
     page.drawText(`${(data.requestedType || "DOC").toUpperCase()} CERTIFICATE`, { x: 50, y: 750, size: 25, font });
     page.drawText(`Issued to: ${data.userEmail}`, { x: 50, y: 700, size: 18 });
 
+    // QR Code
     const verifyUrl = `https://verifix-backend-sffh.onrender.com/verifyCertificate?certId=${requestId}`;
-    const qrData = await QRCode.toDataURL(verifyUrl);
-    const qrImg = await pdf.embedPng(qrData);
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl);
+    const qrImageBytes = qrDataUrl.split(',')[1];
+    const qrImg = await pdf.embedPng(Buffer.from(qrImageBytes, 'base64'));
     page.drawImage(qrImg, { x: 400, y: 50, width: 120, height: 120 });
 
     const pdfBytes = await pdf.save();
     const filePath = `certificates/${requestId}.pdf`;
     const file = bucket.file(filePath);
-    await file.save(Buffer.from(pdfBytes), { contentType: "application/pdf", public: true });
 
-    const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+    // Save File (Removed public: true to prevent 500 errors)
+    await file.save(Buffer.from(pdfBytes), { 
+      contentType: "application/pdf",
+      metadata: { cacheControl: 'public, max-age=31536000' }
+    });
+
+    // Make file readable via a signed URL or public URL
+    const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media`;
+
     await ref.update({ 
       status: "APPROVED", 
       "generatedCertificate.downloadUrl": downloadUrl,
-      "generatedCertificate.issuedAt": new Date()
+      "generatedCertificate.issuedAt": admin.firestore.FieldValue.serverTimestamp()
     });
 
+    console.log("✅ Certificate issued for:", requestId);
     res.json({ success: true, downloadUrl });
   } catch (err) {
+    console.error("❌ Error in approveRequest:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 /* ======================================================
-   3️⃣ VERIFICATION ROUTE
+   3️⃣ REJECT REQUEST (Added missing route)
+====================================================== */
+app.post("/rejectRequest", async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    console.log("🚫 Rejecting request:", requestId);
+    
+    await db.collection("requests").doc(requestId).update({
+      status: "REJECTED",
+      rejectedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("❌ Error in rejectRequest:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ======================================================
+   4️⃣ VERIFICATION ROUTE
 ====================================================== */
 app.get("/verifyCertificate", async (req, res) => {
-  const { certId } = req.query;
-  const snap = await db.collection("requests").doc(certId).get();
-  if (!snap.exists || snap.data().status !== "APPROVED") {
-    return res.send("<h1 style='color:red'>❌ INVALID CERTIFICATE</h1>");
+  try {
+    const { certId } = req.query;
+    const snap = await db.collection("requests").doc(certId).get();
+    
+    if (!snap.exists || snap.data().status !== "APPROVED") {
+      return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ INVALID OR REVOKED CERTIFICATE</h1>");
+    }
+    
+    res.send(`
+      <div style="text-align:center; margin-top:50px; font-family:sans-serif;">
+        <h1 style="color:green">✔ VERIFIED AUTHENTIC</h1>
+        <p>This certificate was issued to <b>${snap.data().userEmail}</b> via VerifiX.</p>
+        <p>Document Type: ${snap.data().requestedType}</p>
+      </div>
+    `);
+  } catch (err) {
+    res.status(500).send("Verification error");
   }
-  res.send(`<h1 style='color:green'>✔ VERIFIED: ${snap.data().userEmail}</h1>`);
 });
 
 const PORT = process.env.PORT || 10000;
