@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { doc, onSnapshot, deleteDoc } from "firebase/firestore";
 
 const BACKEND_URL =
-  "http://127.0.0.1:5001/verifix-be399/us-central1";
+  "https://verifix-backend-sffh.onrender.com";
 
 export default function AdminRequestDetails() {
   const { id } = useParams();

@@ -4,7 +4,7 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL =
-  "http://127.0.0.1:5001/verifix-be399/us-central1";
+  "https://verifix-backend-sffh.onrender.com";
 
 export default function NewRequest() {
   const [type, setType] = useState("BONAFIDE");
