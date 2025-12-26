@@ -11,7 +11,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "verifix-be399.appspot.com" // Your bucket from code
+  storageBucket: "verifix-be399.firebaseapp.com" // Your bucket from code
 });
 
 const db = admin.firestore();

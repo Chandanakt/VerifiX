@@ -1,10 +1,11 @@
 rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // 🔓 ALLOW EVERYTHING (EMULATOR ONLY)
-    match /{document=**} {
-      allow read, write: if true;
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /certificates/{allPaths=**} {
+      // Allow the public to view/download the certificate PDF
+      allow read: if true;
+      // Only your Admin SDK (the Render Backend) can upload/delete
+      allow write: if false; 
     }
   }
 }
