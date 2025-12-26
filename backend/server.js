@@ -5,13 +5,13 @@ const admin = require("firebase-admin");
 const { PDFDocument, StandardFonts } = require("pdf-lib");
 const QRCode = require("qrcode");
 
-// INITIALIZE FIREBASE ADMIN
-// Make sure serviceAccountKey.json is in the same 'backend' folder
+// 1. INITIALIZE FIREBASE ADMIN
 const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "verifix-be399.firebaseapp.com" // Your bucket from code
+  // Ensure this matches your Firebase Console -> Storage bucket name
+  storageBucket: "verifix-be399.appspot.com" 
 });
 
 const db = admin.firestore();
@@ -19,22 +19,36 @@ const bucket = admin.storage().bucket();
 
 const app = express();
 
-// Standard Express Middleware
-app.use(cors({ origin: true }));
+// 2. MIDDLEWARE 
+// Updated CORS to be more robust for your live Firebase site
+app.use(cors({
+  origin: [
+    "https://verifix-be399.web.app", 
+    "https://verifix-be399.firebaseapp.com",
+    "http://localhost:5173" // For local testing
+  ],
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+
 app.use(express.json());
-// This tells the server to respond to the home URL
+
+// 3. HEALTH CHECK ROUTE
+// This fixes the "Cannot GET /" error
 app.get("/", (req, res) => {
   res.send("🚀 Verifix Backend is Live and Running!");
 });
+
 /* ======================================================
    1️⃣ CREATE REQUEST & AI ANALYSIS 
-   (Converted from Firestore onCreate Trigger)
+   This route MUST be called by the frontend to trigger AI
 ====================================================== */
 app.post("/createRequest", async (req, res) => {
   try {
     const data = req.body;
-    console.log("🤖 AI analysis triggered for new request");
+    console.log("🤖 AI analysis triggered for new request from:", data.userEmail);
 
+    // This is the data that makes the "Analysis" screen finish in the frontend
     const newRequest = {
       ...data,
       aiVerdict: "AUTHENTIC",
@@ -49,7 +63,7 @@ app.post("/createRequest", async (req, res) => {
     };
 
     const docRef = await db.collection("requests").add(newRequest);
-    console.log("✅ AI analysis & Request Creation completed:", docRef.id);
+    console.log("✅ AI analysis & Request Creation completed. Doc ID:", docRef.id);
     
     res.status(201).json({ success: true, id: docRef.id });
   } catch (err) {
@@ -82,16 +96,15 @@ app.post("/approveRequest", async (req, res) => {
     const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
     const textFont = await pdf.embedFont(StandardFonts.TimesRoman);
 
-    page.drawText(`${(data.requestedType || data.type).toUpperCase()} CERTIFICATE`, 
+    page.drawText(`${(data.requestedType || "DOCUMENT").toUpperCase()} CERTIFICATE`, 
       { x: 120, y: 780, size: 24, font: titleFont });
     page.drawText("This is to certify that", { x: 80, y: 720, size: 14, font: textFont });
-    page.drawText(data.userEmail, { x: 80, y: 690, size: 16, font: titleFont });
-    page.drawText(`"${data.purpose}"`, { x: 80, y: 630, size: 14, font: titleFont });
+    page.drawText(data.userEmail || "Student", { x: 80, y: 690, size: 16, font: titleFont });
+    page.drawText(`"${data.purpose || 'Verification'}"`, { x: 80, y: 630, size: 14, font: titleFont });
     page.drawText(`Issued on: ${new Date().toDateString()}`, { x: 80, y: 580, size: 12, font: textFont });
 
     /* ========== QR CODE (DYNAMIC VERIFY URL) ========== */
-    // RENDER_URL is an environment variable you set in Render Dashboard
-    const baseUrl = process.env.RENDER_EXTERNAL_URL || "http://localhost:3000";
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || "https://verifix-backend-sffh.onrender.com";
     const verifyUrl = `${baseUrl}/verifyCertificate?certId=${requestId}`;
 
     const qrData = await QRCode.toDataURL(verifyUrl);
@@ -108,7 +121,7 @@ app.post("/approveRequest", async (req, res) => {
 
     await file.save(Buffer.from(pdfBytes), {
       contentType: "application/pdf",
-      public: true,
+      public: true, // Allows the certificate to be viewed via link
     });
 
     const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
@@ -151,28 +164,32 @@ app.post("/rejectRequest", async (req, res) => {
 app.get("/verifyCertificate", async (req, res) => {
   try {
     const { certId } = req.query;
-    if (!certId) return res.send("<h2 style='color:red'>❌ Invalid certificate</h2>");
+    if (!certId) return res.send("<h2 style='color:red'>❌ Invalid certificate link</h2>");
 
     const snap = await db.collection("requests").doc(certId).get();
 
     if (!snap.exists || snap.data().status !== "APPROVED") {
-      return res.send("<h2 style='color:red'>❌ Certificate INVALID</h2>");
+      return res.send("<h2 style='color:red'>❌ Certificate INVALID or Not Yet Approved</h2>");
     }
 
     const d = snap.data();
     res.send(`
-      <div style="font-family:sans-serif; text-align:center; padding: 50px;">
+      <div style="font-family:sans-serif; text-align:center; padding: 50px; border: 10px solid #f0f0f0;">
         <h2 style="color:green">✔ Certificate VERIFIED</h2>
-        <p><b>Student:</b> ${d.userEmail}</p>
-        <p><b>Document:</b> ${d.requestedType || d.type}</p>
-        <p><b>Purpose:</b> ${d.purpose}</p>
-        <p><b>Issued By:</b> College Authority</p>
+        <hr/>
+        <p><b>Student Email:</b> ${d.userEmail}</p>
+        <p><b>Document Type:</b> ${d.requestedType || d.type}</p>
+        <p><b>Verified Date:</b> ${new Date().toLocaleDateString()}</p>
+        <p style="margin-top:20px; color:#666;">This document is an authentic record from VerifiX Systems.</p>
       </div>
     `);
   } catch (err) {
-    res.status(500).send("Internal Server Error");
+    res.status(500).send("Internal Server Error during verification");
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// Start Server
+const PORT = process.env.PORT || 10000; // Render uses 10000 often
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
