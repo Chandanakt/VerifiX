@@ -22,7 +22,10 @@ const app = express();
 // Standard Express Middleware
 app.use(cors({ origin: true }));
 app.use(express.json());
-
+// This tells the server to respond to the home URL
+app.get("/", (req, res) => {
+  res.send("🚀 Verifix Backend is Live and Running!");
+});
 /* ======================================================
    1️⃣ CREATE REQUEST & AI ANALYSIS 
    (Converted from Firestore onCreate Trigger)
