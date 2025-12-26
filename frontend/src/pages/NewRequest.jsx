@@ -12,38 +12,46 @@ export default function NewRequest() {
   const navigate = useNavigate();
 
   const submit = async (e) => {
-    e.preventDefault();
-    if (!file) return alert("Please select a document.");
-    setLoading(true);
+  e.preventDefault();
+  console.log("1. Submit button clicked!"); // CHECKPOINT 1
 
-    try {
-      const user = auth.currentUser;
-      const requestData = {
-        userId: user.uid,
-        userEmail: user.email,
-        requestedType: type,
-        purpose: purpose,
-        attachment: { name: file.name, type: file.type }
-      };
+  if (!file) {
+    console.log("Error: No file selected");
+    return alert("Please select a document.");
+  }
+  
+  setLoading(true);
 
-      // 🔥 CALLING RENDER TO TRIGGER AI AUTOMATICALLY
-      const response = await fetch(`${BACKEND_URL}/createRequest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData),
-      });
+  try {
+    const user = auth.currentUser;
+    console.log("2. Current User:", user?.email); // CHECKPOINT 2
 
-      const result = await response.json();
-      if (result.success) {
-        alert("Request submitted! AI analysis complete.");
-        navigate("/student/requests");
-      }
-    } catch (err) {
-      alert("Submission failed. Ensure backend is awake.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const requestData = {
+      userId: user.uid,
+      userEmail: user.email,
+      requestedType: type,
+      purpose: purpose,
+      attachment: { name: file.name, type: file.type }
+    };
+
+    console.log("3. Sending fetch to:", `${BACKEND_URL}/createRequest`); // CHECKPOINT 3
+
+    const response = await fetch(`${BACKEND_URL}/createRequest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestData),
+    });
+
+    console.log("4. Response received:", response.status); // CHECKPOINT 4
+    
+    // ... rest of your code
+  } catch (err) {
+    console.error("5. Catch Block Error:", err); // CHECKPOINT 5
+    alert("Submission failed.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="bg-[#F5FFF9] p-6 rounded-2xl shadow border border-[#D9F3E6] max-w-lg">
