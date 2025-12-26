@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { db, auth } from "../firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth } from "../firebase"; // Removed 'db' as we use the API now
 import { useNavigate } from "react-router-dom";
 
-const BACKEND_URL =
-  "https://verifix-backend-sffh.onrender.com";
+// Your Render Backend URL
+const BACKEND_URL = "https://verifix-backend-sffh.onrender.com";
 
 export default function NewRequest() {
   const [type, setType] = useState("BONAFIDE");
@@ -31,38 +30,42 @@ export default function NewRequest() {
     try {
       const user = auth.currentUser;
 
-      await addDoc(collection(db, "requests"), {
+      // 1. Prepare the payload for the Backend
+      const requestData = {
         userId: user.uid,
         userEmail: user.email,
-
         requestedType: type,
-        purpose,
-
-        // 🔥 THIS IS CRITICAL
+        purpose: purpose,
         attachment: {
           name: file.name,
           mimeType: file.type,
           size: file.size,
-          uploaded: true, // UI hint only
         },
+        flowType: "REQUEST_NEW"
+      };
 
-        // AI fields (will be filled by backend trigger)
-        aiVerdict: null,
-        aiConfidence: null,
-        aiReasons: [],
-        aiCompleted: false,
-
-        status: "PENDING_ADMIN",
-
-        createdAt: serverTimestamp(),
+      // 2. 🔥 CALL THE RENDER BACKEND API
+      // This triggers the AI logic in your server.js
+      const response = await fetch(`${BACKEND_URL}/createRequest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
-      alert("Request submitted. AI analysis in progress.");
-      navigate("/student/requests");
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert("Request submitted! AI analysis has been completed by VerifiX.");
+        navigate("/student/requests");
+      } else {
+        throw new Error(result.error || "Failed to trigger AI analysis");
+      }
 
     } catch (err) {
       console.error("Request submission failed:", err);
-      alert("Could not create request.");
+      alert("Backend error: Make sure your Render server is awake and CORS is configured.");
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,6 @@ export default function NewRequest() {
       </h2>
 
       <form onSubmit={submit} className="space-y-4 max-w-lg">
-
         {/* Document Type */}
         <div>
           <label className="block text-sm font-medium mb-1">
@@ -86,10 +88,10 @@ export default function NewRequest() {
             onChange={(e) => setType(e.target.value)}
             className="border p-2 w-full rounded"
           >
-            <option>BONAFIDE</option>
-            <option>TRANSCRIPT</option>
-            <option>NOC</option>
-            <option>FEE_RECEIPT</option>
+            <option value="BONAFIDE">BONAFIDE</option>
+            <option value="TRANSCRIPT">TRANSCRIPT</option>
+            <option value="NOC">NOC</option>
+            <option value="FEE_RECEIPT">FEE_RECEIPT</option>
           </select>
         </div>
 
@@ -110,13 +112,13 @@ export default function NewRequest() {
         {/* Upload */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Upload Document
+            Upload Document (For AI scanning)
           </label>
-
           <input
             type="file"
             accept=".pdf,image/*"
             onChange={(e) => setFile(e.target.files[0])}
+            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#1F3B2F] file:text-white hover:file:bg-[#163025]"
           />
 
           {file && (
@@ -129,11 +131,10 @@ export default function NewRequest() {
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-[#1F3B2F] text-white rounded hover:bg-[#163025]"
+          className="px-6 py-2 bg-[#1F3B2F] text-white rounded hover:bg-[#163025] disabled:opacity-50"
         >
-          {loading ? "Submitting..." : "Submit Request"}
+          {loading ? "AI Analysis in Progress..." : "Submit Request"}
         </button>
-
       </form>
     </div>
   );
