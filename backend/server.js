@@ -5,25 +5,26 @@ const admin = require("firebase-admin");
 const { PDFDocument, StandardFonts } = require("pdf-lib");
 const QRCode = require("qrcode");
 
-// 1. INITIALIZE SUPABASE 
-// Use the variables directly or through process.env for security
+// 🟢 1. CORRECT IMPORT FOR SUPABASE
+const { createClient } = require("@supabase/supabase-js");
+
+// 🟢 2. INITIALIZE SUPABASE CLIENT
 const SUPABASE_URL = "https://qczrynwhcvenmrctukww.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjenJ5bndoY3Zlbm1yY3R1a3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDAxNjAsImV4cCI6MjA4MjQxNjE2MH0.CKmucukKNw1MGPv5J-A1fblHZ0Tr6-YQv_r5GMCdTnM"; // Use your full anon key here
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjenJ5bndoY3Zlbm1yY3R1a3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDAxNjAsImV4cCI6MjA4MjQxNjE2MH0.CKmucukKNw1MGPv5J-A1fblHZ0Tr6-YQv_r5GMCdTnM";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 1. INITIALIZE FIREBASE ADMIN
+// 3. INITIALIZE FIREBASE ADMIN (For Firestore Database only)
 const serviceAccount = require("./serviceAccountKey.json");
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "verifix-be399.appspot.com" 
-});
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+}
 
 const db = admin.firestore();
-const bucket = admin.storage().bucket();
 const app = express();
-
 // 2. MIDDLEWARE 
 app.use(cors({
   origin: [
