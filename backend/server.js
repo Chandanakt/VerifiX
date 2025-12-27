@@ -41,23 +41,38 @@ app.get("/", (req, res) => {
 app.post("/createRequest", async (req, res) => {
   try {
     const data = req.body;
-    console.log("🤖 AI analysis triggered for:", data.userEmail);
-
-    const newRequest = {
+    
+    // 1. Initialize the base request object
+    let newRequest = {
       ...data,
-      aiVerdict: "AUTHENTIC",
-      aiConfidence: 92,
-      aiReasons: [
-        "Valid academic structure",
-        "Consistent issue date",
-        "No manipulation detected",
-      ],
       status: "PENDING_ADMIN",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
+    // 2. Conditional AI Logic
+    // Logic: Only run AI if this is a Verification flow from NewRequest.jsx
+    if (data.flowType === "VERIFICATION") {
+      console.log("🤖 AI analysis triggered for Verification:", data.userEmail);
+      
+      newRequest.aiVerdict = "AUTHENTIC";
+      newRequest.aiConfidence = 92;
+      newRequest.aiReasons = [
+        "Valid academic structure",
+        "Consistent issue date",
+        "No manipulation detected",
+      ];
+    } else {
+      // Logic: Skip AI for fresh Certificate Issuance
+      console.log("⏩ AI skipped for Issuance request:", data.userEmail);
+      
+      newRequest.aiVerdict = "NOT_APPLICABLE";
+      newRequest.aiConfidence = null;
+      newRequest.aiReasons = ["Direct issuance request - no document provided for analysis"];
+    }
+
+    // 3. Save to Firestore
     const docRef = await db.collection("requests").add(newRequest);
-    console.log("✅ AI Task Finished. ID:", docRef.id);
+    console.log(`✅ Request Created (${data.flowType || 'DEFAULT'}). ID:`, docRef.id);
     
     res.status(201).json({ success: true, id: docRef.id });
   } catch (err) {

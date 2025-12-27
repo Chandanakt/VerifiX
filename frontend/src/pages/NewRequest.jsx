@@ -28,7 +28,7 @@ export default function NewRequest() {
     );
   }
 
-  const submit = async (e) => {
+ const submit = async (e) => {
     e.preventDefault();
 
     if (!file) {
@@ -37,7 +37,6 @@ export default function NewRequest() {
     }
 
     setLoading(true);
-    console.log("1. Starting submission to backend...");
 
     try {
       const user = auth.currentUser;
@@ -48,6 +47,8 @@ export default function NewRequest() {
         userEmail: user.email,
         requestedType: type,
         purpose: purpose,
+        // 🔥 NEW FEATURE: Tell backend this is a verification flow (triggers AI)
+        flowType: "VERIFICATION", 
         attachment: {
           name: file.name,
           mimeType: file.type,
@@ -55,9 +56,6 @@ export default function NewRequest() {
         }
       };
 
-      // 🔥 CALLING THE RENDER BACKEND INSTEAD OF DIRECT FIRESTORE
-      console.log("2. Calling API:", `${BACKEND_URL}/createRequest`);
-      
       const response = await fetch(`${BACKEND_URL}/createRequest`, {
         method: "POST",
         headers: {
@@ -65,7 +63,7 @@ export default function NewRequest() {
         },
         body: JSON.stringify(requestData),
       });
-
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Backend failed to process request");
