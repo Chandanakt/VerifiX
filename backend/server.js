@@ -5,6 +5,13 @@ const admin = require("firebase-admin");
 const { PDFDocument, StandardFonts } = require("pdf-lib");
 const QRCode = require("qrcode");
 
+// 1. INITIALIZE SUPABASE 
+// Use the variables directly or through process.env for security
+const SUPABASE_URL = "https://qczrynwhcvenmrctukww.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjenJ5bndoY3Zlbm1yY3R1a3d3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NDAxNjAsImV4cCI6MjA4MjQxNjE2MH0.CKmucukKNw1MGPv5J-A1fblHZ0Tr6-YQv_r5GMCdTnM"; // Use your full anon key here
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // 1. INITIALIZE FIREBASE ADMIN
 const serviceAccount = require("./serviceAccountKey.json");
 
