@@ -76,28 +76,95 @@ app.post("/createRequest", async (req, res) => {
    2️⃣ APPROVE & ISSUE CERTIFICATE (SUPABASE VERSION)
 ====================================================== */
 app.post("/approveRequest", async (req, res) => {
-    try {
-        const { requestId } = req.body;
-        const ref = db.collection("requests").doc(requestId);
-        const snap = await ref.get();
-        
-        if (!snap.exists) return res.status(404).send("Request not found");
-        const data = snap.data();
+  try {
+    const { requestId } = req.body;
+    if (!requestId) return res.status(400).json({ error: "requestId required" });
 
-        // --- PDF Generation ---
-        const pdf = await PDFDocument.create();
-        const page = pdf.addPage([595, 842]);
-        const font = await pdf.embedFont(StandardFonts.TimesRomanBold);
+    const ref = db.collection("requests").doc(requestId);
+    const snap = await ref.get();
 
-        page.drawText(`${(data.requestedType || "DOC").toUpperCase()} CERTIFICATE`, { x: 50, y: 750, size: 25, font });
-        page.drawText(`Issued to: ${data.userEmail}`, { x: 50, y: 700, size: 18 });
+    if (!snap.exists) return res.status(404).send("Request not found");
 
-        // --- QR Code ---
-        const verifyUrl = `https://verifix-backend-sffh.onrender.com/verifyCertificate?certId=${requestId}`;
-        const qrDataUrl = await QRCode.toDataURL(verifyUrl);
-        const qrImageBytes = qrDataUrl.split(',')[1];
-        const qrImg = await pdf.embedPng(Buffer.from(qrImageBytes, 'base64'));
-        page.drawImage(qrImg, { x: 400, y: 50, width: 120, height: 120 });
+    const data = snap.data();
+    const student = data.student || {};
+
+    /* ===============================
+       📄 PDF GENERATION
+    =============================== */
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([595, 842]);
+
+    const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
+    const bodyFont = await pdf.embedFont(StandardFonts.TimesRoman);
+
+    // 🏫 HEADER
+    page.drawText("RNS INSTITUTE OF TECHNOLOGY", {
+      x: 70, y: 790, size: 22, font: titleFont
+    });
+
+    page.drawText("Bengaluru, Karnataka", {
+      x: 215, y: 765, size: 12, font: bodyFont
+    });
+
+    // 📜 TITLE
+    page.drawText(
+      `${(data.requestedType || "CERTIFICATE").toUpperCase()} CERTIFICATE`,
+      { x: 120, y: 710, size: 20, font: titleFont }
+    );
+
+    // 🧑 STUDENT DETAILS (AUTO)
+    let y = 650;
+    const gap = 28;
+
+    page.drawText(
+      `This is to certify that ${student.name || "__________"},`,
+      { x: 70, y, size: 14, font: bodyFont }
+    );
+
+    page.drawText(
+      `bearing USN ${student.usn || "__________"}, is a bonafide student of`,
+      { x: 70, y, gap, size: 14, font: bodyFont }
+    );
+
+    page.drawText(
+      `${student.department || "__________"}, Semester ${student.semester || "__"},`,
+      { x: 70, y , gap, size: 14, font: bodyFont }
+    );
+
+    page.drawText(
+      `${student.college || "RNS Institute of Technology"} during the academic year.`,
+      { x: 70, y , gap, size: 14, font: bodyFont }
+    );
+
+    page.drawText(
+      "This certificate is issued upon request for official purposes.",
+      { x: 70, y , gap :1.2, size: 14, font: bodyFont }
+    );
+
+    // ✍ SIGNATURE
+    page.drawText("Principal", {
+      x: 430, y: 180, size: 14, font: titleFont
+    });
+
+    page.drawText("Authorized Signatory", {
+      x: 400, y: 160, size: 10, font: bodyFont
+    });
+
+    /* ===============================
+       🔗 QR CODE (CERT ID ONLY)
+    =============================== */
+    const verifyUrl = `https://verifix-backend-sffh.onrender.com/verifyCertificate/${requestId}`;
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl);
+    const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
+    const qrImage = await pdf.embedPng(qrBytes);
+
+    page.drawImage(qrImage, {
+      x: 70, y: 140, width: 110, height: 110
+    });
+
+    page.drawText("Scan to verify certificate", {
+      x: 70, y: 125, size: 9, font: bodyFont
+    });
 
         const pdfBytes = await pdf.save();
         const fileName = `${requestId}.pdf`;
