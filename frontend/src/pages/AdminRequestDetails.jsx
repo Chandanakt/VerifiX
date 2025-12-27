@@ -36,9 +36,9 @@ export default function AdminRequestDetails() {
         return;
       }
 
-      alert("Action completed successfully");
+      alert("Action completed successfully!");
     } catch (err) {
-      alert("Backend call failed");
+      alert("Backend call failed. Check your Render logs.");
     } finally {
       setLoading(false);
     }
@@ -60,13 +60,12 @@ export default function AdminRequestDetails() {
 
   if (!req) return <div className="p-10 text-center text-[#1F3B2F]">Loading request details...</div>;
 
-  // --- LOGIC FOR DUAL FLOWS ---
   const isVerification = req.flowType === "VERIFICATION";
   const isIssuance = req.flowType === "ISSUANCE" || req.flowType === "REQUEST_NEW";
   
-  // AI is "Ready" if it's already there OR if it's not needed (Issuance)
   const canAct = (isVerification && req.aiVerdict) || isIssuance;
   const isPending = req.status === "PENDING_ADMIN";
+  const isApproved = req.status === "APPROVED";
 
   return (
     <div className="bg-[#F5FFF9] p-6 rounded-2xl shadow border border-[#D9F3E6] max-w-3xl mx-auto my-10">
@@ -74,21 +73,30 @@ export default function AdminRequestDetails() {
 
       {/* BASIC INFO */}
       <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-white rounded-lg border border-[#D9F3E6] text-sm">
-        <p><strong>User:</strong> {req.userEmail}</p>
-        <p><strong>Type:</strong> {req.requestedType}</p>
-        <p><strong>Flow:</strong> 
-          <span className="ml-2 font-bold text-blue-600">
+        <p><strong>User Email:</strong> {req.userEmail}</p>
+        <p><strong>Certificate:</strong> {req.requestedType}</p>
+        <p><strong>Flow Type:</strong> 
+          <span className={`ml-2 font-bold ${isVerification ? "text-orange-600" : "text-blue-600"}`}>
             {isVerification ? "DOCUMENT VERIFICATION" : "NEW ISSUANCE"}
           </span>
         </p>
         <p><strong>Status:</strong> 
-          <span className="ml-2 px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 text-xs font-bold uppercase">
+          <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold uppercase ${
+            isPending ? "bg-yellow-100 text-yellow-800" : 
+            isApproved ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          }`}>
             {req.status}
           </span>
         </p>
       </div>
 
-      {/* CONDITIONAL AI ANALYSIS SECTION */}
+      {/* NEW: PURPOSE SECTION */}
+      <div className="mb-6 p-4 bg-white rounded-lg border border-[#D9F3E6]">
+        <h3 className="font-semibold text-[#1F3B2F] mb-1">Purpose of Request:</h3>
+        <p className="text-gray-700 italic">"{req.purpose || "No purpose provided"}"</p>
+      </div>
+
+      {/* AI ANALYSIS SECTION */}
       {isVerification && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-2 text-[#1F3B2F]">AI Trust Analysis (Gemini)</h3>
@@ -102,9 +110,24 @@ export default function AdminRequestDetails() {
             </div>
           ) : (
             <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm text-yellow-800 animate-pulse">
-              ⏳ AI analysis is analyzing the uploaded document...
+              ⏳ AI analysis is still processing the uploaded file...
             </div>
           )}
+        </div>
+      )}
+
+      {/* DISPLAY GENERATED CERTIFICATE LINK IF APPROVED */}
+      {isApproved && req.generatedCertificate?.downloadUrl && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+          <p className="text-green-800 font-semibold mb-2">✅ Certificate Issued Successfully</p>
+          <a 
+            href={req.generatedCertificate.downloadUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 underline font-medium"
+          >
+            View PDF in Supabase Storage
+          </a>
         </div>
       )}
 
@@ -134,10 +157,10 @@ export default function AdminRequestDetails() {
       {/* FOOTER ACTIONS */}
       <div className="border-t border-[#D9F3E6] pt-6 flex justify-between">
         <button onClick={() => navigate(-1)} className="px-6 py-2 bg-[#1F3B2F] text-white rounded-lg hover:bg-black transition-colors">
-          ← Back to Dashboard
+          ← Back
         </button>
         <button onClick={handleDelete} className="px-6 py-2 text-red-600 font-semibold hover:underline">
-          Delete Request Permanently
+          Delete Permanently
         </button>
       </div>
     </div>
