@@ -117,7 +117,7 @@ export default function MyRequests() {
                         href={r.generatedCertificate.downloadUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-green-700 underline"
+                        className="px-5 py-2 bg-[#1F3B2F] text-white rounded hover:bg-[#163025] transition"
                       >
                         Download
                       </a>

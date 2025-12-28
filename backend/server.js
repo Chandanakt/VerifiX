@@ -99,14 +99,14 @@ app.post("/approveRequest", async (req, res) => {
 
    // 🏫 HEADER
     page.drawText("GSSSIETW", {
-      x: 250,
+      x: (page.getWidth() - titleFont.widthOfTextAtSize("GSSSIETW", 22)) / 2,
       y: 790,
       size: 22,
       font: titleFont
     });
 
     page.drawText("Mysuru, Karnataka", {
-      x: 215,
+      x: (page.getWidth() - bodyFont.widthOfTextAtSize("Mysuru, Karnataka", 12)) / 2,
       y: 765,
       size: 12,
       font: bodyFont
@@ -116,7 +116,7 @@ app.post("/approveRequest", async (req, res) => {
     page.drawText(
       `${(data.requestedType || "CERTIFICATE").toUpperCase()} CERTIFICATE`,
       {
-        x: 120,
+        x:(page.getWidth() - titleFont.widthOfTextAtSize(`${(data.requestedType || "CERTIFICATE").toUpperCase()} CERTIFICATE`,20)) / 2,
         y: 710,
         size: 20,
         font: titleFont
@@ -134,14 +134,14 @@ app.post("/approveRequest", async (req, res) => {
     ];
 
     lines.forEach(line => {
-      page.drawText(line, {
-        x: 70,
-        y,
-        size: 14,
-        font: bodyFont
-      });
-      y -= lineGap;
+    page.drawText(line, {
+      x: (page.getWidth() - bodyFont.widthOfTextAtSize(line, 14)) / 2,
+      y,
+      size: 14,
+      font: bodyFont
     });
+    y -= lineGap;
+  });
 
     // ✍ SIGNATURE
     page.drawText("Principal", {
@@ -270,6 +270,7 @@ app.get("/verify/:certId", async (req, res) => {
         <p><b>Certificate ID:</b> ${certId}</p>
         <p><b>Document Type:</b> ${data.requestedType}</p>
         <p><b>Issued To:</b> ${data.student?.name || data.userEmail}</p>
+        <p><b> Verified and Issued by the Institution </b></p>
       </div>
     `);
   } catch (err) {
