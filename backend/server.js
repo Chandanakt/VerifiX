@@ -128,7 +128,7 @@ app.post("/approveRequest", async (req, res) => {
     const lineGap = 26;
 
     const lines = [
-      `This is to certify that ${student.name},`,
+      `This is to certify that this student,`,
       `is a bonafide student of GSSSIETW College`,
       `This ${data.requestedType} , certificate is issued upon request for official purposes.`
     ];
@@ -161,7 +161,14 @@ app.post("/approveRequest", async (req, res) => {
     /* ===============================
        🔗 QR CODE (CERT ID ONLY)
     =============================== */
-    const verifyUrl =`https://verifix-be399.web.app/verifyCertificate/${requestId}`;
+    const verifyUrl =`https://verifix-backend-sffh.onrender.com/verify/${requestId}`;
+
+    res.json({
+      success: true,
+      downloadUrl: publicUrl,
+      verifyUrl
+    });
+
 
     const qrDataUrl = await QRCode.toDataURL(verifyUrl);
     const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
