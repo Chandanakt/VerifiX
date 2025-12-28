@@ -163,13 +163,6 @@ app.post("/approveRequest", async (req, res) => {
     =============================== */
     const verifyUrl =`https://verifix-backend-sffh.onrender.com/verify/${requestId}`;
 
-    res.json({
-      success: true,
-      downloadUrl: publicUrl,
-      verifyUrl
-    });
-
-
     const qrDataUrl = await QRCode.toDataURL(verifyUrl);
     const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
     const qrImage = await pdf.embedPng(qrBytes);
@@ -207,6 +200,13 @@ app.post("/approveRequest", async (req, res) => {
             "generatedCertificate.issuedAt": admin.firestore.FieldValue.serverTimestamp()
         });
 
+        // ✅ SEND RESPONSE (ONLY ONCE, AT THE END)
+        res.json({
+          success: true,
+          downloadUrl: publicUrl,
+          verifyUrl
+        });
+
         console.log("✅ Certificate issued and saved to Supabase:", requestId);
         res.json({ success: true, downloadUrl: publicUrl });
     } catch (err) {
@@ -234,25 +234,15 @@ app.post("/rejectRequest", async (req, res) => {
 /* ======================================================
    4️⃣ VERIFICATION ROUTE
 ====================================================== */
-// ⚠️ Legacy / optional route (QR should NOT point here)
-app.get("/verifyCertificate", async (req, res) => {
+app.get("/verify/:certId", async (req, res) => {
   try {
-    const { certId } = req.query;
-
-    if (!certId) {
-      return res.send(`
-        <h2 style="text-align:center;margin-top:50px;">
-          Please use the official VerifiX verification portal.
-        </h2>
-      `);
-    }
-
+    const { certId } = req.params;
     const snap = await db.collection("requests").doc(certId).get();
 
     if (!snap.exists || snap.data().status !== "APPROVED") {
       return res.send(`
-        <h1 style="color:red;text-align:center;margin-top:50px;">
-          ❌ INVALID OR REVOKED CERTIFICATE
+        <h1 style="color:red;text-align:center;margin-top:60px;">
+          ❌ CERTIFICATE NOT VERIFIED
         </h1>
       `);
     }
@@ -260,20 +250,18 @@ app.get("/verifyCertificate", async (req, res) => {
     const data = snap.data();
 
     res.send(`
-      <div style="text-align:center;margin-top:40px;font-family:sans-serif;">
-        <h1 style="color:green">✔ VERIFIED AUTHENTIC</h1>
+      <div style="text-align:center;margin-top:60px;font-family:sans-serif;">
+        <h1 style="color:green;">✔ CERTIFICATE VERIFIED</h1>
         <p><b>Certificate ID:</b> ${certId}</p>
-        <p><b>Issued To:</b> ${data.student?.name || data.userEmail}</p>
         <p><b>Document Type:</b> ${data.requestedType}</p>
-        <p style="margin-top:20px;">
-          Please verify via the official portal for full details.
-        </p>
+        <p><b>Issued To:</b> ${data.student?.name || data.userEmail}</p>
       </div>
     `);
   } catch (err) {
     res.status(500).send("Verification error");
   }
 });
+
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, "0.0.0.0", () => console.log(`🚀 Server running on port ${PORT}`));
