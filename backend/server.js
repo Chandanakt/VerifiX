@@ -47,30 +47,79 @@ app.get("/", (req, res) => {
    1️⃣ CREATE REQUEST & AI ANALYSIS 
 ====================================================== */
 app.post("/createRequest", async (req, res) => {
-    try {
-        const data = req.body;
-        let newRequest = {
-            ...data,
-            status: "PENDING_ADMIN",
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
+  try {
+    const {
+      requestedType,
+      userEmail,
+      flowType,
+      student
+    } = req.body;
 
-        if (data.flowType === "VERIFICATION") {
-            newRequest.aiVerdict = "AUTHENTIC";
-            newRequest.aiConfidence = 92;
-            newRequest.aiReasons = ["Valid academic structure", "No manipulation detected"];
-        } else {
-            newRequest.aiVerdict = "NOT_APPLICABLE";
-            newRequest.aiReasons = ["Direct issuance request"];
-        }
-
-        const docRef = await db.collection("requests").add(newRequest);
-        res.status(201).json({ success: true, id: docRef.id });
-    } catch (err) {
-        console.error("❌ Error in createRequest:", err);
-        res.status(500).json({ error: err.message });
+    // 🔒 STRICT VALIDATION
+    if (!requestedType || !userEmail || !student) {
+      return res.status(400).json({
+        error: "Missing required fields"
+      });
     }
+
+    const requiredStudentFields = [
+      "name",
+      "usn",
+      "department",
+      "semester",
+      "college"
+    ];
+
+    for (const field of requiredStudentFields) {
+      if (!student[field]) {
+        return res.status(400).json({
+          error: `Student field '${field}' is required`
+        });
+      }
+    }
+
+    // ✅ SAFE REQUEST OBJECT
+    const newRequest = {
+      requestedType,
+      userEmail,
+      student: {
+        name: student.name,
+        usn: student.usn,
+        department: student.department,
+        semester: student.semester,
+        college: student.college
+      },
+      flowType,
+      status: "PENDING_ADMIN",
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // 🤖 AI LOGIC
+    if (flowType === "VERIFICATION") {
+      newRequest.aiVerdict = "AUTHENTIC";
+      newRequest.aiConfidence = 92;
+      newRequest.aiReasons = [
+        "Valid academic structure",
+        "No manipulation detected"
+      ];
+    } else {
+      newRequest.aiVerdict = "NOT_APPLICABLE";
+      newRequest.aiReasons = ["Direct issuance request"];
+    }
+
+    const docRef = await db.collection("requests").add(newRequest);
+
+    res.status(201).json({
+      success: true,
+      requestId: docRef.id
+    });
+
+  } catch (err) {
+    console.error("❌ createRequest error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
+
 
 /* ======================================================
    2️⃣ APPROVE & ISSUE CERTIFICATE (SUPABASE VERSION)
@@ -78,15 +127,29 @@ app.post("/createRequest", async (req, res) => {
 app.post("/approveRequest", async (req, res) => {
   try {
     const { requestId } = req.body;
-    if (!requestId) return res.status(400).json({ error: "requestId required" });
+    if (!requestId) {
+      return res.status(400).json({ error: "requestId is required" });
+    }
 
     const ref = db.collection("requests").doc(requestId);
     const snap = await ref.get();
 
-    if (!snap.exists) return res.status(404).send("Request not found");
+    if (!snap.exists) {
+      return res.status(404).json({ error: "Request not found" });
+    }
 
     const data = snap.data();
-    const student = data.student || {};
+    const student = data.student;
+
+    // 🔒 SAFETY CHECK (NO PLACEHOLDERS EVER)
+    const requiredFields = ["name", "usn", "department", "semester", "college"];
+    for (const field of requiredFields) {
+      if (!student || !student[field]) {
+        return res.status(400).json({
+          error: `Missing student field: ${field}`
+        });
+      }
+    }
 
     /* ===============================
        📄 PDF GENERATION
@@ -106,40 +169,35 @@ app.post("/approveRequest", async (req, res) => {
       x: 215, y: 765, size: 12, font: bodyFont
     });
 
-    // 📜 TITLE
+    // 📜 CERTIFICATE TITLE
     page.drawText(
-      `${(data.requestedType || "CERTIFICATE").toUpperCase()} CERTIFICATE`,
+      `${data.requestedType.toUpperCase()} CERTIFICATE`,
       { x: 120, y: 710, size: 20, font: titleFont }
     );
 
     // 🧑 STUDENT DETAILS (AUTO)
-    let y = 650;
-    const gap = 28;
+    let y = 640;
+    const lineGap = 26;
 
-    page.drawText(
-      `This is to certify that ${student.name || "__________"},`,
-      { x: 70, y, size: 14, font: bodyFont }
-    );
+    const lines = [
+      `This is to certify that ${student.name},`,
+      `bearing USN ${student.usn}, is a bonafide student of`,
+      `${student.department}, Semester ${student.semester},`,
+      `${student.college} during the academic year.`,
+      `This certificate is issued upon request for official purposes.`
+    ];
 
-    page.drawText(
-      `bearing USN ${student.usn || "__________"}, is a bonafide student of`,
-      { x: 70, y, gap, size: 14, font: bodyFont }
-    );
+    lines.forEach(line => {
+      page.drawText(line, {
+        x: 70,
+        y,
+        size: 14,
+        font: bodyFont
+      });
+      y -= lineGap;
+    });
 
-    page.drawText(
-      `${student.department || "__________"}, Semester ${student.semester || "__"},`,
-      { x: 70, y , gap, size: 14, font: bodyFont }
-    );
 
-    page.drawText(
-      `${student.college || "RNS Institute of Technology"} during the academic year.`,
-      { x: 70, y , gap, size: 14, font: bodyFont }
-    );
-
-    page.drawText(
-      "This certificate is issued upon request for official purposes.",
-      { x: 70, y , gap :1.2, size: 14, font: bodyFont }
-    );
 
     // ✍ SIGNATURE
     page.drawText("Principal", {
