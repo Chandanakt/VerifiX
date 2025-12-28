@@ -161,7 +161,7 @@ app.post("/approveRequest", async (req, res) => {
     /* ===============================
        🔗 QR CODE (CERT ID ONLY)
     =============================== */
-    const verifyUrl =`https://verifix-be399.web.app/verify/${requestId}`;
+    const verifyUrl =`https://verifix-be399.web.app/verifyCertificate/${requestId}`;
 
     const qrDataUrl = await QRCode.toDataURL(verifyUrl);
     const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
