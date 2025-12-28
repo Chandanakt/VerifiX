@@ -128,7 +128,7 @@ app.post("/approveRequest", async (req, res) => {
     const lineGap = 26;
 
     const lines = [
-      `This is to certify that ${user.name},`,
+      `This is to certify that ${student.name},`,
       `is a bonafide student of GSSSIETW College`,
       `This ${data.requestedType} , certificate is issued upon request for official purposes.`
     ];
