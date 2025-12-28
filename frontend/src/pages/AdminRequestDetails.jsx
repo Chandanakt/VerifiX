@@ -159,7 +159,7 @@ export default function AdminRequestDetails() {
         <button onClick={() => navigate(-1)} className="px-6 py-2 bg-[#1F3B2F] text-white rounded-lg hover:bg-black transition-colors">
           ← Back
         </button>
-        <button onClick={handleDelete} className="px-6 py-2 text-red-600 font-semibold hover:underline">
+        <button onClick={handleDelete} className="px-6 py-2 bg-[#1F3B2F] text-white rounded-lg hover:bg-red transition-colors">
           Delete Permanently
         </button>
       </div>
