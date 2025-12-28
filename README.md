@@ -91,22 +91,49 @@ It eliminates fake certificates, manual delays, and opaque approvals by combinin
 
 ```
 VerifiX/
+├── backend/
+│   ├── node_modules/
+│   ├── .env
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── serviceAccountKey.json
+│   └── index.js
+│
 ├── frontend/
-│   ├── pages/
-│   │   ├── StudentDashboard.jsx
-│   │   ├── MyRequests.jsx
-│   │   ├── MyCertificates.jsx
-│   │   ├── VerifyCertificate.jsx
-│   │   ├── AdminDashboard.jsx
-│   │   └── AdminRequestDetails.jsx
-│   ├── firebase.js
-│   └── App.jsx
+│   ├── dist/
+│   ├── node_modules/
+│   ├── src/
+│   │   ├── auth/
+│   │   │   └── AuthContext.jsx
+│   │   ├── hooks/
+│   │   │   └── useUserRole.js
+│   │   ├── pages/
+│   │   │   ├── StudentDashboard.jsx
+│   │   │   ├── MyRequests.jsx
+│   │   │   ├── MyCertificates.jsx
+│   │   │   ├── VerifyCertificate.jsx
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   └── AdminRequestDetails.jsx
+│   │   ├── App.jsx
+│   │   ├── firebase.js
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── package.json
+│   └── package-lock.json
 │
-├── functions/
-│   ├── index.js        # AI pipeline & certificate generation
-│   └── package.json
-│
-└── README.md
+├── .firebase/
+├── .firebaserc
+├── firebase.json
+├── firestore.rules
+├── storage.rules
+├── CNAME
+├── README.md
+└── .gitignore
+
 
 ```
 ### 🔐 Security & Privacy
