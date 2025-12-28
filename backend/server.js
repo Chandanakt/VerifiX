@@ -161,51 +161,66 @@ app.post("/approveRequest", async (req, res) => {
     /* ===============================
        🔗 QR CODE (CERT ID ONLY)
     =============================== */
-    const verifyUrl =`https://verifix-backend-sffh.onrender.com/verify/${requestId}`;
+    // 🔗 Verification URL (used for QR)
+const verifyUrl =
+  `https://verifix-backend-sffh.onrender.com/verify/${requestId}`;
 
-    const qrDataUrl = await QRCode.toDataURL(verifyUrl);
-    const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
-    const qrImage = await pdf.embedPng(qrBytes);
+// 🧾 Generate QR
+const qrDataUrl = await QRCode.toDataURL(verifyUrl);
+const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
+const qrImage = await pdf.embedPng(qrBytes);
 
-    page.drawImage(qrImage, {
-      x: 70, y: 140, width: 110, height: 110
-    });
+page.drawImage(qrImage, {
+  x: 70,
+  y: 140,
+  width: 110,
+  height: 110
+});
 
-    page.drawText("Scan to verify certificate", {
-      x: 70, y: 125, size: 9, font: bodyFont
-    });
+page.drawText("Scan to verify certificate", {
+  x: 70,
+  y: 125,
+  size: 9,
+  font: bodyFont
+});
 
-        const pdfBytes = await pdf.save();
-        const fileName = `${requestId}.pdf`;
+// 💾 Save PDF
+const pdfBytes = await pdf.save();
+const fileName = `${requestId}.pdf`;
 
-        // 🚀 UPLOAD TO SUPABASE STORAGE
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from("certificates") 
-            .upload(fileName, Buffer.from(pdfBytes), {
-                contentType: "application/pdf",
-                upsert: true 
-            });
+// 🚀 Upload to Supabase
+const { error: uploadError } = await supabase.storage
+  .from("certificates")
+  .upload(fileName, Buffer.from(pdfBytes), {
+    contentType: "application/pdf",
+    upsert: true
+  });
 
-        if (uploadError) throw uploadError;
+if (uploadError) throw uploadError;
 
-        // 🔗 GET PUBLIC DOWNLOAD URL
-        const { data: { publicUrl } } = supabase.storage
-            .from("certificates")
-            .getPublicUrl(fileName);
+// 🔗 Get public URL (SAFE)
+const publicUrlResponse = supabase.storage
+  .from("certificates")
+  .getPublicUrl(fileName);
 
-        // ✅ UPDATE FIRESTORE
-        await ref.update({ 
-            status: "APPROVED", 
-            "generatedCertificate.downloadUrl": publicUrl,
-            "generatedCertificate.issuedAt": admin.firestore.FieldValue.serverTimestamp()
-        });
+const publicUrl = publicUrlResponse.data.publicUrl;
 
-        // ✅ SEND RESPONSE (ONLY ONCE, AT THE END)
-        res.json({
-          success: true,
-          downloadUrl: publicUrl,
-          verifyUrl
-        });
+// ✅ Update Firestore
+await ref.update({
+  status: "APPROVED",
+  "generatedCertificate.downloadUrl": publicUrl,
+  "generatedCertificate.issuedAt": admin.firestore.FieldValue.serverTimestamp()
+});
+
+// ✅ SEND RESPONSE (ONLY ONCE)
+res.json({
+  success: true,
+  downloadUrl: publicUrl,
+  verifyUrl
+});
+
+console.log("✅ Certificate issued and saved to Supabase:", requestId);
+
 
         console.log("✅ Certificate issued and saved to Supabase:", requestId);
         res.json({ success: true, downloadUrl: publicUrl });
