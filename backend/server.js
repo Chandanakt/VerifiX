@@ -130,7 +130,7 @@ app.post("/approveRequest", async (req, res) => {
     const lines = [
       `This is to certify that this student,`,
       `is a bonafide student of GSSSIETW College`,
-      `This ${data.requestedType} , certificate is issued upon request for official purposes.`
+      `This ${data.requestedType} certificate is issued upon request for ${data.purpose} purposes.`
     ];
 
     lines.forEach(line => {
