@@ -38,9 +38,7 @@ export default function Sidebar({ role }) {
                 Upload Document
               </NavLink>
 
-              <NavLink to="/student/certificates" className={navStyle}>
-                My Certificates
-              </NavLink>
+              
             </>
           )}
 

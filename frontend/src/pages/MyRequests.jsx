@@ -66,7 +66,7 @@ export default function MyRequests() {
               <th className="px-4">Type</th>
               <th className="px-4">Purpose</th>
               <th className="px-4">Status</th>
-              <th className="px-4">AI Risk</th>
+              <th className="px-4">Authenticity</th>
               <th className="px-4">Certificate</th>
               <th className="px-4">Action</th>
             </tr>

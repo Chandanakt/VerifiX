@@ -99,7 +99,7 @@ app.post("/approveRequest", async (req, res) => {
 
    // 🏫 HEADER
     page.drawText("GSSSIETW", {
-      x: 70,
+      x: 250,
       y: 790,
       size: 22,
       font: titleFont
@@ -128,7 +128,7 @@ app.post("/approveRequest", async (req, res) => {
     const lineGap = 26;
 
     const lines = [
-      `This is to certify that ${student.name},`,
+      `This is to certify that ${user.name},`,
       `is a bonafide student of GSSSIETW College`,
       `This ${data.requestedType} , certificate is issued upon request for official purposes.`
     ];
@@ -161,7 +161,8 @@ app.post("/approveRequest", async (req, res) => {
     /* ===============================
        🔗 QR CODE (CERT ID ONLY)
     =============================== */
-    const verifyUrl = `https://verifix-backend-sffh.onrender.com/verifyCertificate/${requestId}`;
+    const verifyUrl =`https://verifix-be399.web.app/verify/${requestId}`;
+
     const qrDataUrl = await QRCode.toDataURL(verifyUrl);
     const qrBytes = Buffer.from(qrDataUrl.split(",")[1], "base64");
     const qrImage = await pdf.embedPng(qrBytes);
@@ -226,25 +227,45 @@ app.post("/rejectRequest", async (req, res) => {
 /* ======================================================
    4️⃣ VERIFICATION ROUTE
 ====================================================== */
+// ⚠️ Legacy / optional route (QR should NOT point here)
 app.get("/verifyCertificate", async (req, res) => {
-    try {
-        const { certId } = req.query;
-        const snap = await db.collection("requests").doc(certId).get();
-        
-        if (!snap.exists || snap.data().status !== "APPROVED") {
-            return res.send("<h1 style='color:red; text-align:center; margin-top:50px;'>❌ INVALID OR REVOKED CERTIFICATE</h1>");
-        }
-        
-        res.send(`
-            <div style="text-align:center; margin-top:50px; font-family:sans-serif;">
-                <h1 style="color:green">✔ VERIFIED AUTHENTIC</h1>
-                <p>This certificate was issued to <b>${snap.data().userEmail}</b> via VerifiX.</p>
-                <p>Document Type: ${snap.data().requestedType}</p>
-            </div>
-        `);
-    } catch (err) {
-        res.status(500).send("Verification error");
+  try {
+    const { certId } = req.query;
+
+    if (!certId) {
+      return res.send(`
+        <h2 style="text-align:center;margin-top:50px;">
+          Please use the official VerifiX verification portal.
+        </h2>
+      `);
     }
+
+    const snap = await db.collection("requests").doc(certId).get();
+
+    if (!snap.exists || snap.data().status !== "APPROVED") {
+      return res.send(`
+        <h1 style="color:red;text-align:center;margin-top:50px;">
+          ❌ INVALID OR REVOKED CERTIFICATE
+        </h1>
+      `);
+    }
+
+    const data = snap.data();
+
+    res.send(`
+      <div style="text-align:center;margin-top:40px;font-family:sans-serif;">
+        <h1 style="color:green">✔ VERIFIED AUTHENTIC</h1>
+        <p><b>Certificate ID:</b> ${certId}</p>
+        <p><b>Issued To:</b> ${data.student?.name || data.userEmail}</p>
+        <p><b>Document Type:</b> ${data.requestedType}</p>
+        <p style="margin-top:20px;">
+          Please verify via the official portal for full details.
+        </p>
+      </div>
+    `);
+  } catch (err) {
+    res.status(500).send("Verification error");
+  }
 });
 
 const PORT = process.env.PORT || 10000;
