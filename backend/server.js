@@ -221,9 +221,6 @@ res.json({
 
 console.log("✅ Certificate issued and saved to Supabase:", requestId);
 
-
-        console.log("✅ Certificate issued and saved to Supabase:", requestId);
-        res.json({ success: true, downloadUrl: publicUrl });
     } catch (err) {
         console.error("❌ Error in approveRequest:", err);
         res.status(500).json({ error: err.message });

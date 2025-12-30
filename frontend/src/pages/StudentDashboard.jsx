@@ -81,7 +81,7 @@ export default function StudentDashboard() {
             Upload an existing document to detect forgery using AI forensics.
           </p>
           <Link
-            to="/student/requests"
+            to="/student/new"
             className="inline-block px-5 py-3 bg-[#1F3B2F] text-white rounded-lg hover:bg-[#163025]"
           >
             Verify Document →
